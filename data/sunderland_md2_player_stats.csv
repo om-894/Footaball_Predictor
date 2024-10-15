@@ -1,0 +1,15 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Eliezer Mayenda,12.0,es ESP,FW,19-102,77,2,0,0,0,2,2,0,0,16,3,0,0,1.0,1.0,0.0,0,0,6,8,75.0,1,8,1,1,0,0,2,0
+Nazariy Rusyn,15.0,ua UKR,FW,25-298,13,0,0,0,0,0,0,0,0,5,0,0,0,0.0,0.0,0.0,0,0,2,3,66.7,0,2,0,0,0,0,1,1
+Jack Clarke,20.0,eng ENG,LW,23-269,90,0,1,0,0,0,0,0,0,50,0,0,2,0.0,0.0,0.9,5,2,31,40,77.5,1,28,1,5,5,0,2,5
+Patrick Roberts,10.0,eng ENG,RW,27-195,85,0,1,0,0,4,0,0,0,49,1,1,1,0.1,0.1,0.1,5,1,31,36,86.1,6,24,6,4,1,0,0,1
+Romaine Mundle,14.0,eng ENG,RW,21-116,5,0,0,0,0,1,1,0,0,7,1,0,0,0.0,0.0,0.0,0,0,4,4,100.0,0,4,0,0,0,0,1,0
+Chris Rigg,11.0,eng ENG,AM,17-061,77,0,0,0,0,3,1,0,0,39,1,0,1,0.2,0.2,0.1,6,2,22,26,84.6,2,21,0,2,0,0,0,1
+Adil Aouchiche,22.0,fr FRA,AM,22-034,13,0,0,0,0,0,0,0,0,9,0,0,0,0.0,0.0,0.0,0,0,8,8,100.0,0,4,0,1,0,0,0,0
+Jobe Bellingham,7.0,eng ENG,DM,18-330,90,0,0,0,0,0,0,0,0,61,3,1,4,0.0,0.0,0.0,0,0,38,44,86.4,2,20,1,1,1,0,1,1
+Daniel Neil,4.0,eng ENG,DM,23-022,90,0,0,0,0,1,0,0,0,52,2,1,0,0.0,0.0,0.0,3,0,40,46,87.0,8,14,0,1,1,0,2,0
+Dennis Cirkin,3.0,eng ENG,LB,22-134,90,1,0,0,0,3,1,0,0,47,3,2,2,0.1,0.1,0.1,3,0,23,30,76.7,3,13,2,0,0,0,0,0
+Ajibola Alese,42.0,eng ENG,CB,23-214,90,0,0,0,0,0,0,0,0,48,1,0,0,0.0,0.0,0.0,0,0,41,43,95.3,1,19,0,0,0,0,0,0
+Luke O'Nien,13.0,eng ENG,CB,29-271,90,1,1,0,0,1,1,0,0,65,1,0,2,0.2,0.2,0.1,1,0,48,58,82.8,4,25,0,0,0,0,0,0
+Trai Hume,32.0,nir NIR,RB,22-153,90,0,0,0,0,0,0,0,0,72,5,0,1,0.0,0.0,0.0,1,0,55,64,85.9,3,28,1,1,0,0,0,0
+Anthony Patterson,1.0,eng ENG,GK,24-100,90,0,0,0,0,0,0,0,0,36,0,0,0,0.0,0.0,0.0,0,0,21,36,58.3,0,30,0,0,0,3,0,0

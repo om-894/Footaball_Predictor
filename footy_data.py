@@ -77,5 +77,10 @@ md2_df = md2_df.iloc[:-1]
 
 # Assuming your dataframe is named 'df'
 md2_df['Saves'] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]
-md2_df['Fouls_Committed'] = [1, 1, 0, 0, 0, 0, 1, 2, 0, 0, 1, 1, 1, 0]  # Initialize with 0
+md2_df['Fouls_Committed'] = [2, 1, 2, 0, 1, 0, 0, 1, 2, 0, 0, 0, 0, 0]  
+md2_df['Fouls_Won'] = [0, 1, 5, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0]
 
+print(md2_df) # to display the dataframe with the new column names
+
+# Looks good. Export to CSV
+md2_df.to_csv(os.path.join(data_folder, "sunderland_md2_player_stats.csv"), index=False)
