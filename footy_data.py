@@ -84,3 +84,31 @@ print(md2_df) # to display the dataframe with the new column names
 
 # Looks good. Export to CSV
 md2_df.to_csv(os.path.join(data_folder, "sunderland_md2_player_stats.csv"), index=False)
+
+
+####################################################
+#         Match 3: Sunderland vs Burnley           #
+####################################################
+
+md3_url = "https://fbref.com/en/matches/2375d0ce/Sunderland-Burnley-August-24-2024-Championship"
+response = requests.get(md3_url, verify=False)
+md3_df = pd.read_html(response.text, attrs={"id":"stats_8ef52968_summary"})[0]
+
+# '_'.join(col).strip(): Joins the two levels of the MultiIndex with an underscore and removes any extra spaces.
+md3_df.columns = ['_'.join(col).strip() for col in md3_df.columns.values]
+
+# Clean column names using regex
+md3_df.columns = [re.sub(r'Unnamed:.*?_level_0_', '', col).strip() for col in md3_df.columns]
+
+# remove bottom ro so that we only have individual player data.
+md3_df = md3_df.iloc[:-1]
+
+# Assuming your dataframe is named 'df'
+md3_df['Saves'] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+md3_df['Fouls_Committed'] = [0, 2, 5, 0, 0, 0, 1, 0, 2, 1, 1, 0, 0, 1, 0]
+md3_df['Fouls_Won'] = [0, 0, 4, 0, 5, 0, 0, 1, 2, 2, 3, 0, 1, 1, 0]
+
+print(md3_df) # to display the dataframe with the new column names
+
+# Looks good. Export to CSV
+md3_df.to_csv(os.path.join(data_folder, "sunderland_md3_player_stats.csv"), index=False)
