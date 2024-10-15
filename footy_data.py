@@ -30,7 +30,10 @@ full_df.to_csv(csv_file_path, index=False)
 # Need to get weekly match data, then add in two columns for fouls committed and fouls drawn
 # Need to get team overall stats, including fouls committed and fouls drawn
 
-# MD1: Cardiff City vs Sunderland
+#############################################
+#     Match 1: Cardiff City vs Sunderland   #
+#############################################
+
 md1_url = "https://fbref.com/en/matches/9e3914bb/Cardiff-City-Sunderland-August-10-2024-Championship"
 response = requests.get(md1_url, verify=False)
 md1_df = pd.read_html(response.text, attrs={"id":"stats_8ef52968_summary"})[0]
@@ -53,3 +56,26 @@ print(md1_df) # to display the dataframe with the new column names
 
 # Looks good. Export to CSV
 md1_df.to_csv(os.path.join(data_folder, "sunderland_md1_player_stats.csv"), index=False)
+
+
+####################################################
+#     Match 2: Sunderland vs Sheffield Wednesday   #
+####################################################
+
+md2_url = "https://fbref.com/en/matches/ab1574d3/Sunderland-Sheffield-Wednesday-August-18-2024-Championship"
+response = requests.get(md2_url, verify=False)
+md2_df = pd.read_html(response.text, attrs={"id":"stats_8ef52968_summary"})[0]
+
+# '_'.join(col).strip(): Joins the two levels of the MultiIndex with an underscore and removes any extra spaces.
+md2_df.columns = ['_'.join(col).strip() for col in md2_df.columns.values]
+
+# Clean column names using regex
+md2_df.columns = [re.sub(r'Unnamed:.*?_level_0_', '', col).strip() for col in md2_df.columns]
+
+# remove bottom ro so that we only have individual player data.
+md2_df = md2_df.iloc[:-1]
+
+# Assuming your dataframe is named 'df'
+md2_df['Saves'] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]
+md2_df['Fouls_Committed'] = [1, 1, 0, 0, 0, 0, 1, 2, 0, 0, 1, 1, 1, 0]  # Initialize with 0
+
