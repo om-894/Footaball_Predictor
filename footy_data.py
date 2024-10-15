@@ -6,6 +6,9 @@ import pandas as pd
 import requests
 import os
 import re
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from io import StringIO
 
 # Create the "data" folder if it doesn't exist
 data_folder = "data"
@@ -18,7 +21,7 @@ main_url = "https://fbref.com/en/squads/8ef52968/Sunderland-Stats"
 
 # Get the HTML content of the URL
 response = requests.get(main_url, verify=False)  # Disable SSL verification
-full_df = pd.read_html(response.text, attrs={"id": "stats_standard_10"})[0]
+full_df = pd.read_html(StringIO(response.text), attrs={"id": "stats_standard_10"})[0]
 print(full_df.head())
 
 
