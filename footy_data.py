@@ -7,21 +7,22 @@ import requests
 import os
 import re
 import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from io import StringIO
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 # Create the "data" folder if it doesn't exist
 data_folder = "data"
 if not os.path.exists(data_folder):
     os.makedirs(data_folder)
 
-
 # We want to bypass the SSL certificate verification so we set it to False
 main_url = "https://fbref.com/en/squads/8ef52968/Sunderland-Stats"
 
 # Get the HTML content of the URL
 response = requests.get(main_url, verify=False)  # Disable SSL verification
-full_df = pd.read_html(StringIO(response.text), attrs={"id": "stats_standard_10"})[0]
+full_df = pd.read_html(response.text, attrs={"id": "stats_standard_10"})[0]
 print(full_df.head())
 
 
