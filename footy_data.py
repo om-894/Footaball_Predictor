@@ -13,6 +13,10 @@ data_folder = "data"
 if not os.path.exists(data_folder):
     os.makedirs(data_folder)
 
+##################################################
+#         Overall player and squad stats         #
+##################################################
+
 # We want to bypass the SSL certificate verification so we set it to False
 main_url = "https://fbref.com/en/squads/8ef52968/Sunderland-Stats"
 
@@ -21,10 +25,13 @@ response = requests.get(main_url, verify=False)  # Disable SSL verification
 full_df = pd.read_html(response.text, attrs={"id": "stats_standard_10"})[0]
 print(full_df.head())
 
-
 # Save the DataFrame as a CSV file to the "data" folder
 csv_file_path = os.path.join(data_folder, "sunderland_player_season_stats_ovr.csv")
 full_df.to_csv(csv_file_path, index=False)
+
+
+# Match result data
+matchday_results = pd.read_html(response.text, attrs={"id":"matchlogs_for"})[0]
 
 
 # Need to get weekly match data, then add in two columns for fouls committed and fouls drawn
