@@ -273,8 +273,15 @@ md9_df = md9_df.iloc[:-1]
 
 # Assuming your dataframe is named 'df'
 md9_df['Saves'] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-md9_df['Fouls_Committed'] = []
-md9_df['Fouls_Won'] = []
+md9_df['Fouls_Committed'] = [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 0]
+md9_df['Fouls_Won'] = [2, 2, 2, 0, 1, 1, 2, 0, 4, 2, 0, 0, 0]
+
+print(md9_df) # to display the dataframe with the new column names
+
+# Export to CSV
+md9_df.to_csv(os.path.join(data_folder, "sunderland_md9_player_stats.csv"), index=False)
+
+
 
 
 
