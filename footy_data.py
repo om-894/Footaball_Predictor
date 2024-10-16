@@ -7,10 +7,6 @@ import requests
 import os
 import re
 import urllib3
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 
 # Create the "data" folder if it doesn't exist
 data_folder = "data"
