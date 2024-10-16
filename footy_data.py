@@ -33,6 +33,16 @@ full_df.to_csv(csv_file_path, index=False)
 # Match result data
 matchday_results = pd.read_html(response.text, attrs={"id":"matchlogs_for"})[0]
 
+# drop row 1 becuase not a league game
+matchday_results = matchday_results.drop(1) # drops the row with index 1
+matchday_results = matchday_results.reset_index(drop=True) # resets index
+
+matchday_results = matchday_results.iloc[:, 3:-3] # drop the first 3 columns and last 3 columns
+print(matchday_results.head())
+
+# Save the DataFrame as a CSV file to the "data" folder
+csv_file_path = os.path.join(data_folder, "sunderland_match_results.csv")
+
 
 # Need to get weekly match data, then add in two columns for fouls committed and fouls drawn
 # Need to get team overall stats, including fouls committed and fouls drawn
