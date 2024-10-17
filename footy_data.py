@@ -23,7 +23,23 @@ main_url = "https://fbref.com/en/squads/8ef52968/Sunderland-Stats"
 # Get the HTML content of the URL
 response = requests.get(main_url, verify=False)  # Disable SSL verification
 full_df = pd.read_html(response.text, attrs={"id": "stats_standard_10"})[0]
-print(full_df.head())
+
+# remove the multindex
+full_df.columns = ['_'.join(col) for col in full_df.columns]
+
+# Clean column names using regex
+full_df.columns = [re.sub(r'Unnamed:.*?_level_0_', '', col).strip() for col in full_df.columns]
+
+# reomove players that are on loan
+full_df = full_df.iloc[:-9, :]
+
+# remove last column and replace with 2 new columns
+full_df = full_df.iloc[:, :-1]
+full_df['Fouls_Committed'] = [10, 10, 7, 4, 0, 9, 8, 17, 5, 3, 2, 1, 1, 2, 3, pd.NA, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+full_df['Fouls_Won '] = [13, 16, 5, 10, 0, 8, 9, 9, 22, 3, 0, 5, 0, 7, 3, pd.NA, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+full_df['Saves'] = [0, 0, 0, 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+print(full_df)
 
 # Save the DataFrame as a CSV file to the "data" folder
 csv_file_path = os.path.join(data_folder, "sunderland_player_season_stats_ovr.csv")
@@ -42,6 +58,7 @@ print(matchday_results.head())
 
 # Save the DataFrame as a CSV file to the "data" folder
 csv_file_path = os.path.join(data_folder, "sunderland_match_results.csv")
+matchday_results.to_csv(csv_file_path, index=False)
 
 
 # Need to get weekly match data, then add in two columns for fouls committed and fouls drawn
