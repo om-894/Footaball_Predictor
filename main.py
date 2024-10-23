@@ -124,16 +124,16 @@ def predict_for_player(player_data, model, scaler_X, scaler_y):
 def main():
     # List of file paths (replace with your actual file paths)
     file_paths = [
-        'data/sunderland_md1_player_stats.csv',
-        'data/sunderland_md2_player_stats.csv',
-        'data/sunderland_md3_player_stats.csv',
-        'data/sunderland_md4_player_stats.csv',
-        'data/sunderland_md5_player_stats.csv',
-        'data/sunderland_md6_player_stats.csv',
-        'data/sunderland_md7_player_stats.csv',
-        'data/sunderland_md8_player_stats.csv',
-        'data/sunderland_md9_player_stats.csv'
-    ]
+    'data/data_raw/sunderland_md1_player_stats.csv',
+    'data/data_raw/sunderland_md2_player_stats.csv',
+    'data/data_raw/sunderland_md3_player_stats.csv',
+    'data/data_raw/sunderland_md4_player_stats.csv',
+    'data/data_raw/sunderland_md5_player_stats.csv',
+    'data/data_raw/sunderland_md6_player_stats.csv',
+    'data/data_raw/sunderland_md7_player_stats.csv',
+    'data/data_raw/sunderland_md8_player_stats.csv',
+    'data/data_raw/sunderland_md9_player_stats.csv'
+]
 
     # Define input and target features (replace with actual feature names)
     input_features = [

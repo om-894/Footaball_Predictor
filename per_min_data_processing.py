@@ -3,15 +3,15 @@ import pandas as pd
 
 # Load all matchday data files
 file_paths = [
-    'data/sunderland_md1_player_stats.csv',
-    'data/sunderland_md2_player_stats.csv',
-    'data/sunderland_md3_player_stats.csv',
-    'data/sunderland_md4_player_stats.csv',
-    'data/sunderland_md5_player_stats.csv',
-    'data/sunderland_md6_player_stats.csv',
-    'data/sunderland_md7_player_stats.csv',
-    'data/sunderland_md8_player_stats.csv',
-    'data/sunderland_md9_player_stats.csv'
+    'data/data_raw/sunderland_md1_player_stats.csv',
+    'data/data_raw/sunderland_md2_player_stats.csv',
+    'data/data_raw/sunderland_md3_player_stats.csv',
+    'data/data_raw/sunderland_md4_player_stats.csv',
+    'data/data_raw/sunderland_md5_player_stats.csv',
+    'data/data_raw/sunderland_md6_player_stats.csv',
+    'data/data_raw/sunderland_md7_player_stats.csv',
+    'data/data_raw/sunderland_md8_player_stats.csv',
+    'data/data_raw/sunderland_md9_player_stats.csv'
 ]
 
 # Read the data from each file into pandas DataFrames
