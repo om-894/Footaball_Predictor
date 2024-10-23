@@ -9,7 +9,7 @@ import re
 import urllib3
 
 # Create the "data" folder if it doesn't exist
-data_folder = "data"
+data_folder = "data_raw"
 if not os.path.exists(data_folder):
     os.makedirs(data_folder)
 
