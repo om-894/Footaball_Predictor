@@ -1,0 +1,14 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Eliezer Mayenda,12.0,es ESP,FW,19-136,90,0,0,0,0,0,0,0,0,12,0,1,0,0.0,0.0,0.0,1,0,3,5,60.0,0,5,1,3,1,0,0,2
+Romaine Mundle,14.0,eng ENG,LW,21-150,90,0,0,0,0,2,1,0,0,53,1,1,1,0.2,0.2,0.0,3,0,23,33,69.7,4,31,6,6,2,0,2,3
+Patrick Roberts,10.0,eng ENG,RW,27-229,80,0,0,0,0,3,0,1,0,46,1,3,0,0.1,0.1,0.0,3,1,31,37,83.8,5,28,2,6,3,0,0,0
+Wilson Isidor,18.0,fr FRA,RW,24-025,10,0,0,0,0,0,0,0,0,6,1,0,0,0.0,0.0,0.0,0,0,3,3,100.0,0,2,0,0,0,0,0,0
+Chris Rigg,11.0,eng ENG,AM,17-095,89,1,0,0,0,1,1,1,0,33,4,1,1,0.8,0.8,0.0,1,1,17,20,85.0,2,14,3,3,1,0,2,1
+Daniel Ballard,5.0,nir NIR,AM,24-365,1,0,0,0,0,0,0,0,0,1,1,0,0,0.0,0.0,0.0,0,0,0,0,,0,0,0,0,0,0,0,0
+Jobe Bellingham,7.0,eng ENG,DM,18-364,90,0,0,0,0,1,0,0,0,53,2,3,3,0.0,0.0,0.0,4,0,32,37,86.5,3,25,1,1,1,0,1,3
+Daniel Neil,4.0,eng ENG,DM,23-056,90,0,0,0,0,1,0,0,0,45,0,2,1,0.0,0.0,0.0,2,0,33,36,91.7,3,18,0,0,0,0,0,0
+Dennis Cirkin,3.0,eng ENG,LB,22-168,90,0,0,0,0,0,0,0,0,54,6,3,4,0.0,0.0,0.0,2,0,24,34,70.6,1,21,1,3,1,0,2,1
+Luke O'Nien,13.0,eng ENG,CB,29-305,90,0,0,0,0,0,0,0,0,60,1,0,0,0.0,0.0,0.0,0,0,44,51,86.3,1,27,1,1,0,0,0,3
+Chris Mepham,26.0,wls WAL,CB,26-321,90,0,0,0,0,0,0,0,0,44,0,0,3,0.0,0.0,0.1,1,0,30,36,83.3,0,20,0,0,0,0,0,0
+Trai Hume,32.0,nir NIR,RB,22-187,90,0,0,0,0,1,0,1,0,57,1,1,0,0.0,0.0,0.0,0,0,44,49,89.8,3,18,0,0,0,0,1,1
+Anthony Patterson,1.0,eng ENG,GK,24-134,90,0,0,0,0,0,0,0,0,36,0,0,0,0.0,0.0,0.0,0,0,22,34,64.7,0,21,0,0,0,1,0,0

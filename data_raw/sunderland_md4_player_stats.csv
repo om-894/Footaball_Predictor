@@ -1,0 +1,15 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Eliezer Mayenda,12.0,es ESP,FW,19-115,86,0,2,0,0,3,1,0,0,16,1,0,0,1.0,1.0,1.2,3,2,8,9,88.9,1,7,1,0,0,0,1,0
+Nazariy Rusyn,15.0,ua UKR,FW,25-311,4,0,0,0,0,0,0,0,0,4,0,0,0,0.0,0.0,0.0,0,0,3,3,100.0,0,2,0,1,0,0,1,0
+Romaine Mundle,14.0,eng ENG,LM,21-129,72,1,0,0,0,1,1,0,0,29,0,1,0,0.3,0.3,0.0,1,0,16,19,84.2,0,16,3,0,0,0,4,2
+Ian Poveda,36.0,eng ENG,RM,24-204,18,0,0,0,0,1,0,0,0,10,3,0,0,0.0,0.0,0.1,1,0,3,5,60.0,0,3,2,0,0,0,1,0
+Alan Browne,8.0,ie IRL,CM,29-138,90,1,0,0,0,1,1,0,0,55,1,2,2,0.9,0.9,0.0,2,0,31,36,86.1,1,26,2,1,0,0,1,1
+Chris Rigg,11.0,eng ENG,CM,17-074,90,0,0,0,0,1,0,1,0,38,1,0,1,0.1,0.1,0.0,4,0,22,32,68.8,5,27,5,2,1,0,1,2
+Patrick Roberts,10.0,eng ENG,RM,27-208,72,0,0,0,0,2,0,0,0,45,0,0,0,0.2,0.2,0.8,1,0,32,39,82.1,2,26,4,0,0,0,0,0
+Wilson Isidor,18.0,fr FRA,LM,24-004,18,0,0,0,0,0,0,0,0,13,1,0,0,0.0,0.0,0.0,1,0,6,7,85.7,2,6,0,1,1,0,1,0
+Jobe Bellingham,7.0,eng ENG,DM,18-343,90,0,0,0,0,0,0,0,0,43,3,0,0,0.0,0.0,0.0,1,0,25,36,69.4,2,24,0,2,1,0,1,2
+Dennis Cirkin,3.0,eng ENG,LB,22-147,90,0,0,0,0,1,0,0,0,58,2,2,0,0.1,0.1,0.0,1,0,33,47,70.2,1,27,1,2,0,0,2,2
+Luke O'Nien,13.0,eng ENG,CB,29-284,90,0,0,0,0,0,0,0,0,60,0,3,0,0.0,0.0,0.1,1,0,43,48,89.6,1,30,0,0,0,0,0,2
+Daniel Ballard,5.0,nir NIR,CB,24-344,90,0,0,0,0,1,0,0,0,59,0,0,1,0.1,0.1,0.1,1,0,43,53,81.1,1,38,1,0,0,0,1,2
+Trai Hume,32.0,nir NIR,RB,22-166,90,0,0,0,0,0,0,0,0,63,0,0,2,0.0,0.0,0.2,1,0,51,59,86.4,2,31,1,2,0,0,0,1
+Anthony Patterson,1.0,eng ENG,GK,24-113,90,0,0,0,0,0,0,0,0,34,0,0,0,0.0,0.0,0.0,0,0,20,34,58.8,0,23,0,0,0,2,0,0

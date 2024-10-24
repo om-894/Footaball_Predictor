@@ -1,0 +1,16 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Eliezer Mayenda,12.0,es ESP,FW,19-108,79,0,0,0,0,1,1,0,0,9,0,0,0,0.1,0.1,0.0,0,0,2,3,66.7,0,6,1,0,0,0,0,0
+Nazariy Rusyn,15.0,ua UKR,FW,25-304,11,0,0,0,0,0,0,1,0,6,0,0,0,0.0,0.0,0.0,1,0,1,2,50.0,1,3,1,1,0,0,2,0
+Romaine Mundle,14.0,eng ENG,LW,21-122,89,1,0,0,0,5,1,0,0,43,2,0,2,0.2,0.2,0.2,4,0,20,26,76.9,4,24,6,4,2,0,5,4
+Nectarios Triantis,25.0,au AUS,LW,21-105,1,0,0,0,0,0,0,0,0,1,0,0,0,0.0,0.0,0.0,0,0,0,1,0.0,0,0,0,0,0,0,0,0
+Patrick Roberts,10.0,eng ENG,RW,27-201,89,0,1,0,0,4,0,0,0,53,5,0,1,0.2,0.2,0.1,3,1,31,42,73.8,8,28,6,3,2,0,0,5
+Daniel Ballard,5.0,nir NIR,RW,24-337,1,0,0,0,0,0,0,0,0,1,0,0,0,0.0,0.0,0.0,0,0,0,0,,0,0,0,0,0,0,0,0
+Chris Rigg,11.0,eng ENG,AM,17-067,71,0,0,0,0,1,0,0,0,20,1,0,1,0.1,0.1,0.0,1,0,6,12,50.0,2,9,0,2,0,0,1,0
+Alan Browne,8.0,ie IRL,AM,29-131,19,0,0,0,0,0,0,0,0,12,0,0,0,0.0,0.0,0.1,2,0,6,8,75.0,2,5,0,1,0,0,0,1
+Jobe Bellingham,7.0,eng ENG,DM,18-336,90,0,0,0,0,0,0,0,0,38,1,0,3,0.0,0.0,0.1,2,0,24,32,75.0,2,19,0,0,0,0,2,2
+Daniel Neil,4.0,eng ENG,DM,23-028,84,0,0,0,0,1,0,2,1,35,1,0,0,0.0,0.0,0.0,1,0,25,32,78.1,1,19,0,0,0,0,1,2
+Dennis Cirkin,3.0,eng ENG,LB,22-140,90,0,0,0,0,2,1,0,0,54,1,2,1,0.1,0.1,0.0,3,0,32,45,71.1,5,22,3,2,2,0,1,3
+Ajibola Alese,42.0,eng ENG,CB,23-220,90,0,0,0,0,0,0,0,0,62,0,0,4,0.0,0.0,0.0,1,0,50,57,87.7,4,30,0,0,0,0,0,0
+Luke O'Nien,13.0,eng ENG,CB,29-277,90,0,0,0,0,0,0,0,0,66,0,2,0,0.0,0.0,0.0,0,0,52,62,83.9,5,32,0,0,0,0,0,1
+Trai Hume,32.0,nir NIR,RB,22-159,90,0,0,0,0,0,0,1,0,58,1,1,0,0.0,0.0,0.1,4,0,42,51,82.4,9,26,0,0,0,0,1,1
+Anthony Patterson,1.0,eng ENG,GK,24-106,90,0,0,0,0,0,0,0,0,40,0,0,0,0.0,0.0,0.0,0,0,29,40,72.5,0,24,0,0,0,1,0,0
