@@ -12,7 +12,9 @@ file_paths = [
     'data/data_raw/sunderland_md6_player_stats.csv',
     'data/data_raw/sunderland_md7_player_stats.csv',
     'data/data_raw/sunderland_md8_player_stats.csv',
-    'data/data_raw/sunderland_md9_player_stats.csv'
+    'data/data_raw/sunderland_md9_player_stats.csv',
+    'data/data_raw/sunderland_md10_player_stats.csv',
+    'data/data_raw/sunderland_md11_player_stats.csv'
 ]
 
 # Read the data from each file into pandas DataFrames
