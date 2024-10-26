@@ -1,176 +1,111 @@
 
 
-import numpy as np  # Unused import
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder  # Replaced StandardScaler for target with MinMaxScaler
-import matplotlib.pyplot as plt  # Unused import
 import glob
 import os
 
-# Set random seed for reproducibility
 torch.manual_seed(42)
 
+# Data loading functions
+def load_data(folder_path, player_name):
+    file_paths = glob.glob(os.path.join(folder_path, '*.csv'))
+    dfs = [pd.read_csv(file_path) for file_path in file_paths]
+    data = pd.concat(dfs, ignore_index=True)
+    return data[data['Player'] == player_name]
+
+# Data preparation functions
+def prepare_data(data, input_features, target_columns):
+    X = data[input_features]
+    y = data[target_columns]
+
+    scaler_X = StandardScaler()
+    scaler_y = StandardScaler()
+    X = scaler_X.fit_transform(X)
+    y = scaler_y.fit_transform(y)
+
+    return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), scaler_X, scaler_y
+
+# Model definition
 class SimpleMultiOutputModel(nn.Module):
     def __init__(self, input_size, output_size):
         super(SimpleMultiOutputModel, self).__init__()
-        self.fc1 = nn.Linear(input_size, 8)  # Reduced neurons for simplicity
+        self.fc1 = nn.Linear(input_size, 8)
         self.fc2 = nn.Linear(8, 16)
-        self.fc3 = nn.Linear(16, output_size)  # Output layer for predictions
+        self.fc3 = nn.Linear(16, output_size)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))  # Ensure non-negative outputs
+        x = self.fc3(x)
         return x
 
-# Function to preprocess and combine multiple files
-def preprocess_data(file_paths, input_features, target_features):
-    # Combine data from multiple files
-    combined_data = pd.DataFrame()
-
-    for file_path in file_paths:
-        data = pd.read_csv(file_path)
-        combined_data = pd.concat([combined_data, data], ignore_index=True)
-
-    # Encode categorical variables (e.g., player names)
-    label_encoders = {}
-    for column in ['Player']:  # If there are more categorical columns, add them here
-        le = LabelEncoder()
-        combined_data[column] = le.fit_transform(combined_data[column])
-        label_encoders[column] = le
-
-    # Scale the input features and target variables
-    scaler_X = StandardScaler()
-    scaler_y = MinMaxScaler()  # Changed from StandardScaler to MinMaxScaler for target variables
-
-    input_data = scaler_X.fit_transform(combined_data[input_features])
-    target_data = scaler_y.fit_transform(combined_data[target_features])
-
-    return input_data, target_data, scaler_X, scaler_y, combined_data, label_encoders
-
-# Function to train the model
-def train_model(input_data, target_data, epochs=1000, early_stopping_tolerance=0.001, patience=50):
-    input_dim = input_data.shape[1]
-    output_dim = target_data.shape[1]
-
-    # Create a simple PyTorch model
-    model = SimpleMultiOutputModel(input_dim, output_dim)
-
-    # Loss function and optimizer
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-2)
-
+# Model training function with early stopping
+def train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer, epochs=100, patience=10):
     best_loss = float('inf')
-    epochs_no_improve = 0
+    patience_count = 0
 
     for epoch in range(epochs):
-        # Forward pass
-        inputs = torch.tensor(input_data, dtype=torch.float32)
-        targets = torch.tensor(target_data, dtype=torch.float32)
-        outputs = model(inputs)
-
-        # Calculate loss
-        loss = criterion(outputs, targets)
-
-        # Backward pass and optimization
+        model.train()
         optimizer.zero_grad()
+        outputs = model(X_train)
+        loss = criterion(outputs, y_train)
         loss.backward()
         optimizer.step()
 
-        # Validation (for simplicity, using training data as validation here)
+        model.eval()
         with torch.no_grad():
-            test_loss = criterion(model(inputs), targets).item()
+            test_outputs = model(X_test)
+            test_loss = criterion(test_outputs, y_test)
 
-        # Early stopping
-        if test_loss < best_loss - early_stopping_tolerance:
-            best_loss = test_loss
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
+            if test_loss < best_loss:
+                best_loss = test_loss
+                patience_count = 0
+            else:
+                patience_count += 1
+            if patience_count >= patience:
+                print(f"Early stopping at epoch {epoch + 1}. Best test loss: {best_loss:.4f}")
+                break
 
-        if epochs_no_improve >= patience:
-            print(f"Early stopping at epoch {epoch}. Best test loss: {best_loss:.4f}")
-            break
+        if (epoch) % 10 == 0:
+            print(f'Epoch: {epoch} | Loss: {loss.item():.4f} | Test Loss: {test_loss.item():.4f}')
 
-        if epoch % 100 == 0:
-            print(f"Epoch: {epoch} | Loss: {loss:.4f} | Test Loss: {test_loss:.4f}")
+# Prediction function
+def predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y):
+    avg_data = data[input_features].mean().to_frame().T
+    avg_scaled = scaler_X.transform(avg_data)
+    avg_tensor = torch.tensor(avg_scaled, dtype=torch.float32)
 
-    return model
-
-# Function to make predictions for a player
-def predict_for_player(player_data, model, scaler_X, scaler_y):
-    # Scale player data
-    player_data_scaled = scaler_X.transform(player_data)
-    player_data_tensor = torch.tensor(player_data_scaled, dtype=torch.float32)
-
-    # Make predictions
     model.eval()
     with torch.no_grad():
-        predictions = model(player_data_tensor)
-
-    # Inverse transform predictions to the original scale
+        predictions = model(avg_tensor)
     predictions_original_scale = scaler_y.inverse_transform(predictions.numpy())
 
-    # Clip predictions to avoid negative values
-    predictions_original_scale = np.clip(predictions_original_scale, 0, None)
+    print("Predictions for Matchweek 10 (based on average stats from Matchweeks 1-9):")
+    print(predictions_original_scale)
 
-    return predictions_original_scale
-
-# Main function to handle the whole process
-def main():
-    # List of file paths (replace with your actual file paths)
-    file_paths = [
-    'data/data_raw/sunderland_md1_player_stats.csv',
-    'data/data_raw/sunderland_md2_player_stats.csv',
-    'data/data_raw/sunderland_md3_player_stats.csv',
-    'data/data_raw/sunderland_md4_player_stats.csv',
-    'data/data_raw/sunderland_md5_player_stats.csv',
-    'data/data_raw/sunderland_md6_player_stats.csv',
-    'data/data_raw/sunderland_md7_player_stats.csv',
-    'data/data_raw/sunderland_md8_player_stats.csv',
-    'data/data_raw/sunderland_md9_player_stats.csv'
-]
-
-    # Define input and target features (replace with actual feature names)
-    input_features = [
-        'Min',
-        'Performance_Touches',
-        'Passes_Att',
-        'Passes_Cmp',
-        'Passes_PrgP',
-        'Carries_Carries',
-        'Take-Ons_Att',
-        'Take-Ons_Succ',
-        'Performance_Int',   # Interceptions
-        'Performance_Tkl',   # Tackles
-        'Performance_Blocks',
-        'Expected_xG',       # Expected Goals
-        'Expected_xAG',      # Expected Assists
-        'Performance_CrdY',  # Yellow Cards
-        'Performance_CrdR'   # Red Cards
-    ]
-    
-    target_features = ['Fouls_Won', 'Fouls_Committed', 'Performance_Sh', 'Performance_SoT']  # Example targets
-
-    # Preprocess the data from multiple files
-    input_data, target_data, scaler_X, scaler_y, combined_data, label_encoders = preprocess_data(file_paths, input_features, target_features)
-
-    # Train the model
-    model = train_model(input_data, target_data)
-
-    # Predict for a specific player
-    player_name = "Chris Rigg"  # Replace with the player you want to predict for
-    player_row = combined_data[combined_data['Player'] == label_encoders['Player'].transform([player_name])[0]].iloc[0]
-    player_data = player_row[input_features].to_frame().T
-
-    predictions = predict_for_player(player_data, model, scaler_X, scaler_y)
-    print(f"Predictions for {player_name}:")
-    print(predictions)
-
-# Call the main function to run the process
+# Main pipeline
 if __name__ == "__main__":
-    main()
+    folder_path = 'data/normalized_per_90_min'
+    player_name = 'Dennis Cirkin'
+    input_features = [
+        'Performance_Touches', 'Passes_Att', 'Passes_Cmp', 'Passes_PrgP', 'Carries_Carries',
+        'Take-Ons_Att', 'Take-Ons_Succ', 'Performance_Int', 'Performance_Tkl',
+        'Performance_Blocks', 'Expected_xG', 'Expected_xAG', 'Performance_CrdY', 'Performance_CrdR'
+    ]
+    target_columns = ['Fouls_Won', 'Fouls_Committed', 'Performance_Sh', 'Performance_SoT']
+
+    data = load_data(folder_path, player_name)
+    X, y, scaler_X, scaler_y = prepare_data(data, input_features, target_columns)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = SimpleMultiOutputModel(X_train.shape[1], y_train.shape[1])
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-2)
+
+    train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer)
+    predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y)
