@@ -85,8 +85,11 @@ def predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y):
         predictions = model(avg_tensor)
     predictions_original_scale = scaler_y.inverse_transform(predictions.numpy())
 
-    print("Predictions for Matchweek 10 (based on average stats from Matchweeks 1-9):")
-    print(predictions_original_scale)
+    print(f'{player_name} predictions for next game (based on average stats from previous matchweeks:')
+    print(f'Fouls Won: {predictions_original_scale[0, 0]:.2f}')
+    print(f'Fouls Committed: {predictions_original_scale[0, 1]:.2f}')
+    print(f'Shots: {predictions_original_scale[0, 2]:.2f}')
+    print(f'Shots on Target: {predictions_original_scale[0, 3]:.2f}')
 
 # Main pipeline
 if __name__ == "__main__":
