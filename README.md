@@ -1,6 +1,6 @@
 # Football Match Predictor
 
-This project is a deep learning model designed to predict **fouls committed** and **fouls won** for Sunderland AFC players in the next matchday. Using historical match data from previous weeks, the model averages relevant player statistics to make these predictions. Built with PyTorch, this project offers insights into player performance and match outcomes.
+This project is a deep learning model designed to predict **fouls committed**, **fouls won**, **shots** and **shots on target** for Sunderland AFC players in the next matchday. Using historical match data from previous matchdays, the model averages relevant player statistics to make these predictions. Built with PyTorch, this project offers insights into player performance and match outcomes.
 
 ## Project Structure
 
