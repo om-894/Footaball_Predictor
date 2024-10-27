@@ -53,6 +53,8 @@ The model will output predictions for fouls committed and fouls won for Sunderla
 ## Data Sources
 The project uses historical performance data for Sunderland AFC players. Ensure that the data files are structured and formatted as expected by the scripts. If you're using external data, refer to the footy_data.py script for any preprocessing requirements.
 
+Data used in `footy_data.py` is gathered from FBref.com: https://fbref.com/en/
+
 ## Example Output
 Sample output for a player prediction might look like:
 
