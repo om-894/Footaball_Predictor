@@ -57,7 +57,9 @@ The project uses historical performance data for Sunderland AFC players. Ensure 
 Sample output for a player prediction might look like:
 
 Player: Dan Neil
+
 Predicted Fouls Committed: 1.2
+
 Predicted Fouls Won: 0.8
 
 ## Requirements
@@ -66,6 +68,7 @@ The primary libraries used in this project include:
 - `torch`
 - `numpy`
 - `pandas`
+
 Refer to requirements.txt for the complete list.
 
 ## License
