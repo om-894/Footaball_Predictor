@@ -28,23 +28,22 @@ To set up and run the project, follow these steps:
    python3 -m venv my_env
 
 3. Activate the Virtual Environment
+   On macOS/Linux:
+   ```bash
+   source my_env/bin/activate
+   
+   On Windows:
+   ```bash
+   my_env\Scripts\activate
 
-On macOS/Linux:
-bash
-Copy code
-source my_env/bin/activate
-On Windows:
-bash
-Copy code
-my_env\Scripts\activate
-Install Required Packages
-Use requirements.txt to install all dependencies.
+4. Install Required Packages
+   Use requirements.txt to install all dependencies.
+   ``` bash
+   pip install -r requirements.txt
 
-bash
-Copy code
-pip install -r requirements.txt
-Usage
-Prepare the Data
+## Usage
+
+1. Prepare the Data
 Ensure the data files are in the data/ folder. If the data is not included, refer to the data source instructions in this README.
 
 Run the Model
