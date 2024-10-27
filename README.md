@@ -31,53 +31,42 @@ To set up and run the project, follow these steps:
    On macOS/Linux:
    ```bash
    source my_env/bin/activate
-   
-   On Windows:
-   ```bash
-   my_env\Scripts\activate
 
 4. Install Required Packages
    Use requirements.txt to install all dependencies.
-   ``` bash
+   ```bash
    pip install -r requirements.txt
 
 ## Usage
 
-1. Prepare the Data
-Ensure the data files are in the data/ folder. If the data is not included, refer to the data source instructions in this README.
+1. **Prepare the Data**  
+   Ensure the data files are in the `data/` folder. If the data is not included, refer to the data source instructions in this README.
 
-Run the Model
-To generate predictions for the next matchday, run the main.py script.
+2. **Run the Model**  
+   To generate predictions for the next matchday, run the `main.py` script.
+   ```bash
+   python main.py
 
-bash
-Copy code
-python main.py
-Interpret Results
+3. **Interpret Results**
 The model will output predictions for fouls committed and fouls won for Sunderland AFC players based on their historical performance.
 
-Data Sources
+## Data Sources
 The project uses historical performance data for Sunderland AFC players. Ensure that the data files are structured and formatted as expected by the scripts. If you're using external data, refer to the footy_data.py script for any preprocessing requirements.
 
-Example Output
+## Example Output
 Sample output for a player prediction might look like:
 
-text
-Copy code
 Player: Dan Neil
 Predicted Fouls Committed: 1.2
 Predicted Fouls Won: 0.8
-Requirements
+
+## Requirements
 The primary libraries used in this project include:
 
-torch
-numpy
-pandas
+- `torch`
+- `numpy`
+- `pandas`
 Refer to requirements.txt for the complete list.
 
-License
+## License
 This project is licensed under the MIT License. See the LICENSE file for details.
-
-vbnet
-Copy code
-
-This markdown format will render properly on GitHub, giving a clear structure to your README file. Adjust any specifics, like the GitHub repository link, to match your project.
