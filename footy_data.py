@@ -13,6 +13,7 @@ data_folder = "data/data_raw"
 if not os.path.exists(data_folder):
     os.makedirs(data_folder)
 
+'''
 ##################################################
 #         Overall player and squad stats         #
 ##################################################
@@ -35,9 +36,9 @@ full_df = full_df.iloc[:-9, :]
 
 # remove last column and replace with 2 new columns
 full_df = full_df.iloc[:, :-1]
-full_df['Fouls_Committed'] = [10, 10, 7, 4, 0, 9, 8, 17, 5, 3, 2, 1, 1, 2, 3, pd.NA, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-full_df['Fouls_Won '] = [13, 16, 5, 10, 0, 8, 9, 9, 22, 3, 0, 5, 0, 7, 3, pd.NA, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-full_df['Saves'] = [0, 0, 0, 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+full_df['Fouls_Committed'] = [10, 10, 7, 4, 0, 9, 8, 17, 5, 3, 2, 1, 1, 2, 3, pd.NA, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+full_df['Fouls_Won '] = [13, 16, 5, 10, 0, 8, 9, 9, 22, 3, 0, 5, 0, 7, 3, pd.NA, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+full_df['Saves'] = [0, 0, 0, 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 print(full_df)
 
@@ -63,6 +64,7 @@ matchday_results.to_csv(csv_file_path, index=False)
 
 # Need to get weekly match data, then add in two columns for fouls committed and fouls drawn
 # Need to get team overall stats, including fouls committed and fouls drawn
+'''
 
 #############################################
 #     Match 1: Cardiff City vs Sunderland   #
@@ -370,6 +372,62 @@ print(md11_df) # to display the dataframe with the new column names
 
 # Export to CSV
 md11_df.to_csv(os.path.join(data_folder, "sunderland_md11_player_stats.csv"), index=False)
+
+
+####################################################
+#      Match 12: Sunderland vs Oxford united       #
+####################################################
+
+md12_url = "https://fbref.com/en/matches/da73045d/Sunderland-Oxford-United-October-26-2024-Championship"
+response = requests.get(md12_url, verify=False)
+md12_df = pd.read_html(response.text, attrs={"id":"stats_8ef52968_summary"})[0]
+
+# Join multiindex columns with an underscore and remove extra spaces
+md12_df.columns = ['_'.join(col).strip() for col in md12_df.columns.values]
+
+# Clean column names using regex
+md12_df.columns = [re.sub(r'Unnamed:.*?_level_0_', '', col).strip() for col in md12_df.columns]
+
+# remove bottom row so that we only have individual player data.
+md12_df = md12_df.iloc[:-1]
+
+# Assuming your dataframe is named 'df'
+md12_df['Saves'] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]
+md12_df['Fouls_Committed'] = [0, 0, 1, 0, 1, 2, 0, 0, 1, 2, 0, 2, 0, 0, 0]
+md12_df['Fouls_Won'] = [0, 1, 1, 0, 2, 0, 0, 1, 0, 1, 2, 0, 0, 0, 0]
+
+print(md12_df) # to display the dataframe with the new column names
+
+# Export to CSV
+md12_df.to_csv(os.path.join(data_folder, "sunderland_md12_player_stats.csv"), index=False)
+
+
+####################################################
+#         Match 13: Sunderland vs QPR              #
+####################################################
+
+md13_url = "https://fbref.com/en/matches/ed5ce326/Queens-Park-Rangers-Sunderland-November-2-2024-Championship"
+response = requests.get(md13_url, verify=False)
+md13_df = pd.read_html(response.text, attrs={"id":"stats_8ef52968_summary"})[0]
+
+# Join multiindex columns with an underscore and remove extra spaces
+md13_df.columns = ['_'.join(col).strip() for col in md13_df.columns.values]
+
+# Clean column names using regex
+md13_df.columns = [re.sub(r'Unnamed:.*?_level_0_', '', col).strip() for col in md13_df.columns]
+
+# remove bottom row so that we only have individual player data.
+md13_df = md13_df.iloc[:-1]
+
+# Assuming your dataframe is named 'df'
+md13_df['Saves'] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]
+md13_df['Fouls_Committed'] = [0, 0, 3, 1, 2, 0, 2, 0, 2, 0, 0, 0, 0]
+md13_df['Fouls_Won'] = [0, 0, 0, 2, 1, 1, 0, 3, 2, 1, 2, 0, 0]
+
+print(md13_df) # to display the dataframe with the new column names
+
+# Export to CSV
+md13_df.to_csv(os.path.join(data_folder, "sunderland_md13_player_stats.csv"), index=False)
 
 
 ####################################################
