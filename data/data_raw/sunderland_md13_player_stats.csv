@@ -1,0 +1,14 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Wilson Isidor,18.0,fr FRA,FW,24-067,89,0,0,0,0,4,1,0,0,19,0,0,1,0.8,0.8,0.0,0,0,6,8,75.0,0,11,1,1,0,0,0,0
+Leo Fuhr Hjelde,33.0,no NOR,FW,21-068,1,0,0,0,0,0,0,0,0,0,0,0,0,0.0,0.0,0.0,0,0,0,0,,0,0,0,0,0,0,0,0
+Romaine Mundle,14.0,eng ENG,LW,21-192,63,0,0,0,0,0,0,0,0,28,1,2,3,0.0,0.0,0.0,1,0,11,18,61.1,2,16,2,1,0,0,3,0
+Aaron Connolly,24.0,ie IRL,LW,24-279,27,0,0,0,0,0,0,0,0,4,0,0,0,0.0,0.0,0.0,0,0,0,0,,0,2,0,1,0,0,1,2
+Patrick Roberts,10.0,eng ENG,RW,27-271,90,0,0,0,0,1,0,1,0,44,4,0,0,0.0,0.0,0.0,3,0,19,29,65.5,4,25,0,4,0,0,2,1
+Alan Browne,8.0,ie IRL,AM,29-201,90,0,0,0,0,0,0,0,0,34,2,1,2,0.0,0.0,0.0,1,0,20,26,76.9,2,16,3,2,1,0,0,1
+Jobe Bellingham,7.0,eng ENG,DM,19-040,57,0,0,0,0,0,0,0,1,33,0,0,1,0.0,0.0,0.0,2,0,20,21,95.2,0,18,1,0,0,0,2,0
+Daniel Neil,4.0,eng ENG,DM,23-098,90,0,0,0,0,1,0,0,0,47,0,1,0,0.0,0.0,0.0,2,0,32,39,82.1,8,26,1,2,0,0,0,3
+Dennis Cirkin,3.0,eng ENG,LB,22-210,90,0,0,0,0,0,0,0,0,44,5,2,0,0.0,0.0,0.0,0,0,22,35,62.9,0,12,1,0,0,0,2,2
+Luke O'Nien,13.0,eng ENG,CB,29-347,90,0,0,0,0,0,0,0,0,61,0,1,0,0.0,0.0,0.0,2,0,43,55,78.2,2,31,0,0,0,0,0,1
+Chris Mepham,26.0,wls WAL,CB,26-363,90,0,0,0,0,0,0,0,0,44,1,0,0,0.0,0.0,0.0,1,0,30,35,85.7,2,18,0,0,0,0,0,2
+Trai Hume,32.0,nir NIR,RB,22-229,90,0,0,0,0,2,0,0,0,66,2,0,0,0.1,0.1,0.2,3,0,38,56,67.9,4,23,2,0,0,0,0,0
+Simon Moore,21.0,eng ENG,GK,34-167,90,0,0,0,0,0,0,1,0,39,0,0,0,0.0,0.0,0.0,0,0,22,38,57.9,0,15,0,0,0,3,0,0
