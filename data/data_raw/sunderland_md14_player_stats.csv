@@ -1,0 +1,15 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Aaron Connolly,24.0,ie IRL,FW,24-283,61,0,0,0,0,1,1,0,0,6,0,0,0,0.4,0.4,0.0,0,0,1,2,50.0,0,6,0,0,0,0,0,2
+Romaine Mundle,14.0,eng ENG,"LW,FW",21-196,29,0,0,0,0,0,0,0,0,17,0,0,1,0.0,0.0,0.0,1,0,11,12,91.7,1,10,1,1,0,0,0,1
+Wilson Isidor,18.0,fr FRA,"LW,FW",24-071,79,0,0,0,0,1,0,0,0,12,0,0,0,0.0,0.0,0.0,1,0,3,4,75.0,0,9,1,1,0,0,2,2
+Eliezer Mayenda,12.0,es ESP,FW,19-182,11,0,0,0,0,0,0,0,0,1,0,0,0,0.0,0.0,0.0,0,0,1,1,100.0,0,0,0,0,0,0,1,0
+Tom Watson,40.0,eng ENG,RW,18-212,61,0,0,0,0,1,0,0,0,22,1,1,0,0.0,0.0,0.0,1,0,7,11,63.6,3,18,0,3,1,0,0,2
+Patrick Roberts,10.0,eng ENG,RW,27-275,29,0,0,0,0,2,1,0,0,23,1,0,1,0.0,0.0,0.0,2,0,11,16,68.8,2,15,1,2,1,0,0,3
+Chris Rigg,11.0,eng ENG,AM,17-141,90,0,0,0,0,1,0,0,0,37,1,1,1,0.0,0.0,0.0,2,0,20,29,69.0,3,24,0,2,1,0,0,3
+Alan Browne,8.0,ie IRL,DM,29-205,90,0,0,0,0,1,0,0,0,47,3,1,2,0.0,0.0,0.0,2,0,21,33,63.6,0,26,1,1,1,0,0,3
+Daniel Neil,4.0,eng ENG,DM,23-102,90,0,0,0,0,1,0,0,0,44,2,0,0,0.0,0.0,0.0,1,0,29,38,76.3,5,27,2,0,0,0,1,1
+Dennis Cirkin,3.0,eng ENG,LB,22-214,90,0,0,0,0,0,0,0,0,48,1,1,4,0.0,0.0,0.0,0,0,24,34,70.6,4,18,2,2,0,0,3,2
+Luke O'Nien,13.0,eng ENG,CB,29-351,90,0,0,0,0,2,0,0,0,59,1,2,2,0.1,0.1,0.0,2,0,38,46,82.6,3,26,0,1,0,0,1,0
+Chris Mepham,26.0,wls WAL,CB,27-001,90,0,0,0,0,0,0,1,0,48,3,2,2,0.0,0.0,0.0,1,0,30,35,85.7,2,22,1,1,1,0,3,0
+Trai Hume,32.0,nir NIR,RB,22-233,90,0,0,0,0,0,0,0,0,68,4,2,1,0.0,0.0,0.4,2,0,43,54,79.6,8,33,3,0,0,0,0,1
+Simon Moore,21.0,eng ENG,GK,34-171,90,0,0,0,0,0,0,0,0,37,0,0,0,0.0,0.0,0.0,0,0,21,34,61.8,0,19,0,0,0,2,0,0
