@@ -1,0 +1,13 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Wilson Isidor,18.0,fr FRA,FW,24-088,90,0,0,0,0,2,1,0,0,17,4,0,0,0.2,0.2,0.2,2,0,5,9,55.6,1,6,0,3,1,0,1,0
+Tom Watson,40.0,eng ENG,LW,18-229,90,0,0,0,0,1,1,0,0,27,2,1,2,0.0,0.0,0.0,2,0,9,13,69.2,1,13,3,5,3,0,2,2
+Eliezer Mayenda,12.0,es ESP,RW,19-199,90,0,0,0,0,1,1,0,0,27,1,0,2,0.0,0.0,0.2,5,0,11,13,84.6,4,17,4,4,2,0,2,0
+Aaron Connolly,24.0,ie IRL,AM,24-300,57,1,0,0,0,1,1,0,0,12,1,0,0,0.1,0.1,0.0,1,1,2,6,33.3,0,7,0,0,0,0,1,2
+Milan Aleksić,30.0,rs SRB,AM,19-085,33,0,0,0,0,1,1,1,0,16,0,1,0,0.2,0.2,0.0,0,0,4,6,66.7,0,9,2,2,0,0,1,0
+Daniel Neil,4.0,eng ENG,DM,23-119,90,0,0,0,0,2,0,0,0,36,3,0,1,0.1,0.1,0.0,2,0,23,26,88.5,4,14,2,1,1,0,2,0
+Chris Rigg,11.0,eng ENG,DM,17-158,90,0,0,0,0,0,0,0,0,45,0,0,1,0.0,0.0,0.1,4,1,17,34,50.0,4,23,3,0,0,0,2,2
+Ajibola Alese,42.0,eng ENG,LB,23-311,90,0,0,0,0,1,1,0,0,42,1,3,0,0.3,0.3,0.0,0,0,13,25,52.0,2,11,1,0,0,0,1,1
+Daniel Ballard,5.0,nir NIR,CB,25-062,90,0,0,0,0,0,0,0,0,53,0,0,0,0.0,0.0,0.0,0,0,34,44,77.3,3,20,1,0,0,0,0,2
+Chris Mepham,26.0,wls WAL,CB,27-018,90,0,0,0,0,0,0,1,0,45,1,1,2,0.0,0.0,0.0,0,0,26,32,81.3,3,17,1,1,1,0,3,1
+Luke O'Nien,13.0,eng ENG,RB,30-002,90,0,0,0,0,0,0,0,0,43,1,0,0,0.0,0.0,0.1,2,0,26,40,65.0,5,16,1,1,1,0,1,3
+Anthony Patterson,1.0,eng ENG,GK,24-197,90,0,0,0,0,0,0,0,0,33,0,0,0,0.0,0.0,0.0,0,0,12,32,37.5,0,16,0,0,0,4,0,1
