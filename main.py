@@ -82,7 +82,7 @@ def train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer, e
         # Compute the training loss
         loss = criterion(outputs, y_train)
 
-        # Backward pass: compute gradients of the loss w.r.t. model parameters
+        # Backward pass: compute gradients of the loss with respect to model parameters
         loss.backward()
 
         # Update model parameters
