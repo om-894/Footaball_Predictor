@@ -94,7 +94,7 @@ def predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y):
 # Main pipeline
 if __name__ == "__main__":
     folder_path = 'data/normalized_per_90_min'
-    player_name = 'Dennis Cirkin'
+    player_name = 'Tom Watson'
     input_features = [
         'Performance_Touches', 'Passes_Att', 'Passes_Cmp', 'Passes_PrgP', 'Carries_Carries',
         'Take-Ons_Att', 'Take-Ons_Succ', 'Performance_Int', 'Performance_Tkl',
