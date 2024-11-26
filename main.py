@@ -45,34 +45,79 @@ class SimpleMultiOutputModel(nn.Module):
         return x
 
 # Model training function with early stopping
-def train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer, epochs=100, patience=10):
+def train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer, epochs=20, patience=10):
+    """
+    Train a PyTorch model with early stopping based on validation loss.
+
+    Parameters:
+    - model: The neural network model to train.
+    - X_train: Training data inputs.
+    - y_train: Training data targets.
+    - X_test: Validation data inputs.
+    - y_test: Validation data targets.
+    - criterion: Loss function (e.g., nn.MSELoss()).
+    - optimizer: Optimization algorithm (e.g., torch.optim.SGD).
+    - epochs: Maximum number of epochs to train (default is 20).
+    - patience: Number of epochs with no improvement after which training will be stopped (default is 10).
+    """
+
+    # Initialize the best validation loss to infinity
     best_loss = float('inf')
+
+    # Counter to keep track of epochs without improvement
     patience_count = 0
 
+    # Loop over the dataset multiple times
     for epoch in range(epochs):
+
+        # Set the model to training mode (enables dropout and batch normalization)
         model.train()
+
+        # Zero the parameter gradients to prevent accumulation
         optimizer.zero_grad()
+
+        # Forward pass: compute the model output for training data
         outputs = model(X_train)
+
+        # Compute the training loss
         loss = criterion(outputs, y_train)
+
+        # Backward pass: compute gradients of the loss w.r.t. model parameters
         loss.backward()
+
+        # Update model parameters
         optimizer.step()
 
+        # Set the model to evaluation mode (disables dropout and batch normalization)
         model.eval()
+
+        # Disable gradient calculation for validation to save memory and computation
         with torch.no_grad():
+            # Forward pass: compute the model output for validation data
             test_outputs = model(X_test)
+
+            # Compute the validation loss
             test_loss = criterion(test_outputs, y_test)
 
+            # Check if the validation loss has improved
             if test_loss < best_loss:
+                # Update the best validation loss
                 best_loss = test_loss
+                # Reset the patience counter
                 patience_count = 0
             else:
+                # Increment the patience counter
                 patience_count += 1
+
+            # If the validation loss hasn't improved for 'patience' epochs, stop training
             if patience_count >= patience:
                 print(f"Early stopping at epoch {epoch + 1}. Best test loss: {best_loss:.4f}")
-                break
+                break  # Exit the training loop
 
+        # Print progress every 10 epochs
         if (epoch) % 10 == 0:
             print(f'Epoch: {epoch} | Loss: {loss.item():.4f} | Test Loss: {test_loss.item():.4f}')
+
 
 # Prediction function
 def predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y):
@@ -94,7 +139,7 @@ def predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y):
 # Main pipeline
 if __name__ == "__main__":
     folder_path = 'data/normalized_per_90_min'
-    player_name = 'Tom Watson'
+    player_name = 'Trai Hume'
     input_features = [
         'Performance_Touches', 'Passes_Att', 'Passes_Cmp', 'Passes_PrgP', 'Carries_Carries',
         'Take-Ons_Att', 'Take-Ons_Succ', 'Performance_Int', 'Performance_Tkl',
@@ -112,3 +157,5 @@ if __name__ == "__main__":
 
     train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer)
     predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y)
+
+# Trai Hume resulting in a low test loss of 0.4459 currently.
