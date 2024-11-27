@@ -1,5 +1,5 @@
 
-
+# Load the necessary libraries
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -120,7 +120,7 @@ def train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer, e
 
 
 # Prediction function
-def predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y):
+def predict_for_next_matchweek(model, data, input_features, scaler_X, scaler_y):
     avg_data = data[input_features].mean().to_frame().T
     avg_scaled = scaler_X.transform(avg_data)
     avg_tensor = torch.tensor(avg_scaled, dtype=torch.float32)
@@ -156,6 +156,6 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-2)
 
     train_model(model, X_train, y_train, X_test, y_test, criterion, optimizer)
-    predict_for_matchweek_10(model, data, input_features, scaler_X, scaler_y)
+    predict_for_next_matchweek(model, data, input_features, scaler_X, scaler_y)
 
 # Trai Hume resulting in a low test loss of 0.4459 currently.
