@@ -1,0 +1,14 @@
+Player,#,Nation,Pos,Age,Min,Performance_Gls,Performance_Ast,Performance_PK,Performance_PKatt,Performance_Sh,Performance_SoT,Performance_CrdY,Performance_CrdR,Performance_Touches,Performance_Tkl,Performance_Int,Performance_Blocks,Expected_xG,Expected_npxG,Expected_xAG,SCA_SCA,SCA_GCA,Passes_Cmp,Passes_Att,Passes_Cmp%,Passes_PrgP,Carries_Carries,Carries_PrgC,Take-Ons_Att,Take-Ons_Succ,Saves,Fouls_Committed,Fouls_Won
+Wilson Isidor,18.0,fr FRA,FW,24-091,90,0,0,0,0,2,1,0,0,15,1,0,0,0.1,0.1,0.2,1,0,7,10,70.0,0,6,0,0,0,0,1,0
+Tom Watson,40.0,eng ENG,LW,18-232,67,0,0,0,0,3,0,0,0,41,1,0,0,0.1,0.1,0.0,4,0,18,28,64.3,1,26,4,3,2,0,0,4
+Eliezer Mayenda,12.0,es ESP,LW,19-202,23,0,0,0,0,0,0,0,0,14,0,0,0,0.0,0.0,0.0,2,0,9,12,75.0,1,10,1,5,3,0,0,0
+Patrick Roberts,10.0,eng ENG,RW,27-295,90,0,0,0,0,4,0,0,0,87,3,0,0,0.3,0.3,0.0,4,0,60,69,87.0,11,52,3,5,1,0,0,1
+Chris Rigg,11.0,eng ENG,AM,17-161,90,0,0,0,0,3,0,0,0,66,3,0,1,0.3,0.3,0.1,3,0,39,49,79.6,3,41,1,5,2,0,1,0
+Jobe Bellingham,7.0,eng ENG,DM,19-064,90,0,0,0,0,2,0,0,0,67,3,0,0,0.1,0.1,0.1,3,0,42,53,79.2,5,43,1,2,0,0,1,1
+Daniel Neil,4.0,eng ENG,DM,23-122,90,0,0,0,0,0,0,0,0,65,2,1,1,0.0,0.0,0.0,7,0,51,60,85.0,9,40,0,0,0,0,2,0
+Trai Hume,32.0,nir NIR,"LB,RB",22-253,90,0,0,0,0,1,0,0,0,78,0,2,0,0.0,0.0,0.2,2,0,64,74,86.5,11,47,5,0,0,0,1,0
+Daniel Ballard,5.0,nir NIR,CB,25-065,90,0,0,0,0,3,1,0,0,76,2,2,0,0.0,0.0,0.0,0,0,56,65,86.2,7,45,0,0,0,0,3,0
+Chris Mepham,26.0,wls WAL,CB,27-021,90,0,0,0,0,0,0,0,0,97,2,2,0,0.0,0.0,0.0,1,0,88,95,92.6,5,76,7,0,0,0,0,0
+Luke O'Nien,13.0,eng ENG,RB,30-005,67,0,0,0,0,0,0,0,0,55,1,0,0,0.0,0.0,0.1,2,0,43,53,81.1,6,31,1,0,0,0,0,0
+Ajibola Alese,42.0,eng ENG,LB,23-314,23,0,0,0,0,0,0,0,0,13,0,0,0,0.0,0.0,0.0,0,0,13,13,100.0,3,8,0,0,0,0,0,0
+Anthony Patterson,1.0,eng ENG,GK,24-200,90,0,0,0,0,0,0,0,0,30,0,0,0,0.0,0.0,0.0,0,0,20,29,69.0,0,19,0,0,0,0,0,0
