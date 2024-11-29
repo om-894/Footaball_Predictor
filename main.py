@@ -147,10 +147,12 @@ if __name__ == "__main__":
     ]
     target_columns = ['Fouls_Won', 'Fouls_Committed', 'Performance_Sh', 'Performance_SoT']
 
+    # Load the data, prepare it, and split it into training and testing sets
     data = load_data(folder_path, player_name)
     X, y, scaler_X, scaler_y = prepare_data(data, input_features, target_columns)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+    # Create the model, loss function, and optimizer
     model = SimpleMultiOutputModel(X_train.shape[1], y_train.shape[1])
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-2)

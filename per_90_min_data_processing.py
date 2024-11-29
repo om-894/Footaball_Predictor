@@ -2,7 +2,7 @@
 import pandas as pd
 import os
 
-# Load all matchday data files
+# Load all matchday data files from the data_raw directory
 file_paths = [
     'data/data_raw/sunderland_md1_player_stats.csv',
     'data/data_raw/sunderland_md2_player_stats.csv',
