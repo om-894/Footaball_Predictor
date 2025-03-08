@@ -28,10 +28,12 @@ dfs = [pd.read_csv(file) for file in file_paths]
 
 # Function to upscale stats to 90 minutes for players who played more than 20 minutes and less than or equal to 90 minutes
 def upscale_stats_to_90_minutes(df):
-    if 'Min' in df.columns:
-        # Only upscale if minutes are greater than 20 and less than or equal to 90
+    if 'Min' in df.columns:       
+        # Create a boolean mask to filter players who played more than 20 minutes but at most 90 minutes
         mask = (df['Min'] > 20) & (df['Min'] <= 90)
-        for col in df.columns[df.columns.get_loc('Min')+1:]:
+        # 'Min' [+1:] allows for all columns after min.
+        for col in df.columns[df.columns.get_loc('Min')+1:]:    
+            # Scale the values in the specified column to a per 90 minutes basis for the rows where the mask is True
             df.loc[mask, col] = df.loc[mask, col] / df.loc[mask, 'Min'] * 90
     return df
 
