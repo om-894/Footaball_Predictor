@@ -1,0 +1,255 @@
+"""Fits the whole model ladder on walk-forward folds and scores it.
+
+Two evaluation modes, and the difference between them is informative:
+
+``known-minutes``
+    Condition on the minutes actually played. Isolates the quality of the *rate* model --
+    "given he played 78 minutes, how many fouls?" -- so models are compared without the
+    minutes model's error muddying the picture.
+
+``forecast``
+    Full pre-kickoff forecast: the minutes model supplies expected minutes, and the count
+    model works from those. This is the honest number, and it is always worse.
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
+
+import numpy as np
+import pandas as pd
+
+from footy.config import TARGETS
+from footy.datasets import Fold, assert_fold_is_ordered, season_folds
+from footy.evaluate import (
+    CountDistribution,
+    comparison_table,
+    expected_calibration_error,
+    score,
+)
+from footy.features import feature_columns
+from footy.models.baselines import (
+    GlobalMean,
+    NaivePer90EWMA,
+    PlayerEWMA,
+    PositionMean,
+    ShrunkCareerRate,
+)
+from footy.models.gbm import PoissonGBM
+from footy.models.glm import NegativeBinomialGLM, PoissonGLM
+from footy.models.minutes import MinutesModel
+from footy.models.nn import NegBinMLP, TrainConfig
+
+log = logging.getLogger(__name__)
+
+
+@dataclass
+class FoldResult:
+    fold: str
+    rows: list[dict]
+    predictions: pd.DataFrame
+    #: The fitted network, kept so callers can ask it for a full predictive distribution
+    #: rather than reconstructing one from the stored mean and a guessed dispersion.
+    network: "NegBinMLP | None" = None
+    feature_columns: list[str] = field(default_factory=list)
+
+
+def _score_model(
+    name: str,
+    target: str,
+    fold_name: str,
+    y_true: np.ndarray,
+    distribution: CountDistribution,
+    mode: str,
+) -> dict:
+    row = score(y_true, distribution, label=name)
+    row.update(
+        target=target,
+        fold=fold_name,
+        mode=mode,
+        ECE=expected_calibration_error(y_true, distribution, k=1),
+    )
+    return row
+
+
+def run_fold(
+    frame: pd.DataFrame,
+    fold: Fold,
+    *,
+    targets: tuple[str, ...] = TARGETS,
+    modes: tuple[str, ...] = ("known-minutes", "forecast"),
+    include_nn: bool = True,
+    seed: int = 42,
+) -> FoldResult:
+    """Fit every model on one fold and score it on the held-out matches."""
+    assert_fold_is_ordered(frame, fold)
+
+    columns = feature_columns(frame)
+    train = frame.iloc[fold.train]
+    valid = frame.iloc[fold.valid] if len(fold.valid) else train
+    test = frame.iloc[fold.test]
+
+    X_train, X_valid, X_test = train[columns], valid[columns], test[columns]
+    minutes_train = train["Min"].to_numpy(dtype=float)
+    minutes_test = test["Min"].to_numpy(dtype=float)
+
+    log.info(
+        "fold %s: train=%d valid=%d test=%d, %d features",
+        fold.name, len(train), len(valid), len(test), len(columns),
+    )
+
+    # -- stage 1: minutes --------------------------------------------------------
+    minutes_model = MinutesModel(seed=seed).fit(X_train, minutes_train)
+    predicted_minutes = np.clip(minutes_model.predict(X_test), 1.0, 90.0)
+    minutes_mae = float(np.abs(predicted_minutes - minutes_test).mean())
+    log.info("fold %s: minutes model MAE %.2f", fold.name, minutes_mae)
+
+    exposure_by_mode = {
+        "known-minutes": minutes_test,
+        "forecast": predicted_minutes,
+    }
+
+    rows: list[dict] = []
+    keep = ["MatchURL", "Match_Date", "Team", "Opponent", "Player", "Min", *targets]
+    predictions = test[[c for c in keep if c in test.columns]].copy()
+    predictions["pred_minutes"] = predicted_minutes
+    predictions["fold"] = fold.name
+
+    # -- the neural net is trained once for all targets jointly ------------------
+    network = None
+    if include_nn:
+        network = NegBinMLP(list(targets), TrainConfig(seed=seed)).fit(
+            X_train,
+            train[list(targets)],
+            minutes_train,
+            train["Player"],
+            validation=(
+                X_valid,
+                valid[list(targets)],
+                valid["Min"].to_numpy(dtype=float),
+                valid["Player"],
+            ),
+        )
+
+    # -- stage 2: one count model per target -------------------------------------
+    for target in targets:
+        y_train = train[target].to_numpy(dtype=float)
+        y_test = test[target].to_numpy(dtype=float)
+
+        fitted: dict[str, object] = {}
+        for model in (
+            GlobalMean(),
+            PositionMean(),
+            ShrunkCareerRate(target),
+            NaivePer90EWMA(target),
+            PlayerEWMA(target),
+            PoissonGLM(),
+            NegativeBinomialGLM(),
+        ):
+            try:
+                fitted[model.name] = model.fit(X_train, y_train, minutes_train)
+            except Exception as exc:  # noqa: BLE001 - a failed model must not kill the run
+                log.warning("%s failed on %s/%s: %s", model.name, target, fold.name, exc)
+
+        gbm = PoissonGBM(seed=seed).set_validation(
+            X_valid, valid[target].to_numpy(dtype=float), valid["Min"].to_numpy(dtype=float)
+        )
+        try:
+            fitted[gbm.name] = gbm.fit(X_train, y_train, minutes_train)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("PoissonGBM failed on %s/%s: %s", target, fold.name, exc)
+
+        for mode in modes:
+            exposure = exposure_by_mode[mode]
+            for name, model in fitted.items():
+                distribution = model.predict_distribution(X_test, exposure)
+                rows.append(
+                    _score_model(name, target, fold.name, y_test, distribution, mode)
+                )
+                if mode == "forecast":
+                    predictions[f"{target}__{name}"] = distribution.mu
+
+            if network is not None:
+                distribution = network.predict_distribution(
+                    X_test, exposure, test["Player"], target
+                )
+                rows.append(
+                    _score_model(
+                        NegBinMLP.name, target, fold.name, y_test, distribution, mode
+                    )
+                )
+                if mode == "forecast":
+                    predictions[f"{target}__{NegBinMLP.name}"] = distribution.mu
+
+    for row in rows:
+        row["minutes_MAE"] = minutes_mae
+
+    return FoldResult(
+        fold=fold.name,
+        rows=rows,
+        predictions=predictions,
+        network=network,
+        feature_columns=columns,
+    )
+
+
+def run_walk_forward(
+    frame: pd.DataFrame,
+    *,
+    targets: tuple[str, ...] = TARGETS,
+    test_seasons: tuple[int, ...] | None = None,
+    include_nn: bool = True,
+    seed: int = 42,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Run every fold. Returns ``(per-fold scores, out-of-sample predictions)``."""
+    folds = season_folds(frame, test_seasons=test_seasons)
+    if not folds:
+        raise ValueError("no usable folds; the data may not span enough seasons")
+
+    all_rows: list[dict] = []
+    all_predictions: list[pd.DataFrame] = []
+    for fold in folds:
+        result = run_fold(
+            frame, fold, targets=targets, include_nn=include_nn, seed=seed
+        )
+        all_rows.extend(result.rows)
+        all_predictions.append(result.predictions)
+
+    return pd.DataFrame(all_rows), pd.concat(all_predictions, ignore_index=True)
+
+
+def summarise(scores: pd.DataFrame, mode: str = "forecast") -> pd.DataFrame:
+    """Average each model's metrics across folds, for the headline table."""
+    subset = scores[scores["mode"] == mode]
+    metrics = ["LogScore", "CRPS", "PoissonDev", "MAE", "RMSE", "ECE", "pred_mean", "actual_mean"]
+    available = [m for m in metrics if m in subset.columns]
+
+    # Weight folds by size so a short season does not dominate.
+    def weighted(group: pd.DataFrame) -> pd.Series:
+        weights = group["n"] / group["n"].sum()
+        return pd.Series({m: float((group[m] * weights).sum()) for m in available})
+
+    aggregated = (
+        subset.groupby(["target", "model"])
+        .apply(weighted, include_groups=False)
+        .reset_index()
+    )
+    totals = subset.groupby(["target", "model"], as_index=False)["n"].sum()
+    aggregated = aggregated.merge(totals, on=["target", "model"], how="left")
+    return comparison_table(aggregated.to_dict("records"))
+
+
+def improvement_over_baseline(
+    summary: pd.DataFrame, baseline: str = "PlayerEWMA", metric: str = "LogScore"
+) -> pd.DataFrame:
+    """Percentage improvement over the benchmark, per target.
+
+    Negative means the model is worse than simply extrapolating the player's own recent
+    form -- which is the result that must be reported, not hidden.
+    """
+    pivot = summary.pivot_table(index="target", columns="model", values=metric)
+    if baseline not in pivot.columns:
+        raise KeyError(f"baseline {baseline!r} not in summary")
+    reference = pivot[baseline]
+    return (100.0 * (reference.values[:, None] - pivot) / reference.values[:, None]).round(2)
