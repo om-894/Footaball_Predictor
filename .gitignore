@@ -161,3 +161,19 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 footy_env/
+
+# --- footy ---
+# Downloaded sources and derived tables: all regenerable via `footy fetch` / `footy build`.
+data/raw/
+data/interim/
+data/features/
+# Trained model artefacts at the repo root -- anchored, so it does not also match
+# src/footy/models/, which is source.
+/models/
+reports/
+# The legacy Sunderland Championship scrape IS committed -- second-tier player-level
+# data is not available from any mirror, so it cannot be regenerated.
+!data/legacy/
+
+# seleniumbase artefacts from the live FBref scraper
+downloaded_files/
