@@ -5,13 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "footy"
 version = "2.0.0"
-description = "Leakage-free player prop forecasting for football, built on FBref match data"
+description = "Forecasts per-match football player stats (shots, fouls, cards, tackles) from FBref data"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 
 dependencies = [
-    "pandas>=2.0",
+    "pandas>=2.2",
     "numpy>=1.24",
     "pyarrow>=14.0",
     "scipy>=1.11",
@@ -25,8 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Live FBref scraping. Heavy (drives a real browser) and entirely optional -- the
-# GitHub-release mirrors in footy.sources are the default path.
+# live FBref scraping for scripts/scrape_fbref.py. it drives a real browser, so it is optional
 live = ["soccerdata>=1.9.1"]
 dev = ["pytest>=8.0", "pytest-cov>=5.0"]
 
