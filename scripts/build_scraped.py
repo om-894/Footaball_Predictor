@@ -1,56 +1,65 @@
-"""Assemble a live FBref scrape into the standard player-match table.
+"""
+Build a player-match table from a live FBref scrape.
 
-Usage:  python scripts/build_scraped.py ENG-Premier-League
+Reads the CSVs that scrape_fbref.py saved for one league, joins each player row to its
+fixture and writes the same table shape that `footy fetch` makes, so the features and
+models run on it unchanged.
+
+INPUTS        data/raw/<slug>/player_summary_*.csv and schedule_*.csv
+OUTPUTS       data/interim/<slug>_player_matches.parquet
+REQUIREMENTS  pip install -e .
+
+Example:  python scripts/build_scraped.py ENG-Championship
 """
 
-import glob
+import argparse
 import logging
-import sys
 import warnings
 
 warnings.filterwarnings("ignore")
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 import pandas as pd
 
 from footy.config import RAW_DIR, SCRAPED_LEAGUES, ensure_dirs, scraped_path
 from footy.scraped import build_scraped_matches
 
-slug = sys.argv[1]
-raw = RAW_DIR / slug
 
-stats = sorted(glob.glob(f"{raw}/player_summary_*.csv"))
-schedules = sorted(glob.glob(f"{raw}/schedule_*.csv"))
-if not stats:
-    raise SystemExit(f"no player_summary_*.csv in {raw} yet")
+def read_csvs(folder, pattern: str) -> pd.DataFrame:
+    """Every CSV in a folder that matches a pattern, stacked into one frame."""
+    paths = sorted(folder.glob(pattern))
+    return pd.concat([pd.read_csv(p) for p in paths], ignore_index=True) if paths else pd.DataFrame()
 
-players = pd.concat([pd.read_csv(f) for f in stats], ignore_index=True)
-# Chunked appends repeat the header row; drop those and any duplicate player-matches.
-players = players[players["player"] != "player"]
-players = players.drop_duplicates(subset=["game_id", "team", "player"])
-schedule = pd.concat([pd.read_csv(f) for f in schedules], ignore_index=True)
 
-print(f"loaded {len(players):,} player rows from {len(stats)} season file(s)")
-print("columns:", sorted(players.columns.tolist()))
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build a player-match table from a live FBref scrape.")
+    parser.add_argument("slug", help=f"folder under data/raw, e.g. {', '.join(SCRAPED_LEAGUES)}")
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-label = SCRAPED_LEAGUES.get(slug, slug)
-frame = build_scraped_matches(players, schedule, competition=label)
-out = scraped_path(slug)
-ensure_dirs()
-frame.to_parquet(out, index=False)
+    raw = RAW_DIR / args.slug
+    players = read_csvs(raw, "player_summary_*.csv")
+    schedule = read_csvs(raw, "schedule_*.csv")
+    if players.empty or schedule.empty:
+        raise SystemExit(f"no scraped CSVs in {raw} yet, run scripts/scrape_fbref.py first")
 
-print(f"\nplayer-matches: {len(frame):,}  matches: {frame.MatchURL.nunique()}")
-print(frame.groupby("Season_End_Year").agg(
-    rows=("Player", "size"), matches=("MatchURL", "nunique")).to_string())
-print(f"date range: {frame.Match_Date.min().date()} -> {frame.Match_Date.max().date()}")
-print(f"home/away balance: {frame.is_home.mean():.2f} (want ~0.50)")
+    # appended chunks can repeat the header row, and a match can be saved twice
+    players = players[players["player"] != "player"]
+    players = players.drop_duplicates(subset=["game_id", "team", "player"])
+    print(f"loaded {len(players):,} player rows from {raw}")
 
-for team in ("Sunderland", "Hull City", "AZ Alkmaar"):
-    sub = frame[frame.Team == team]
-    if len(sub):
-        print(f"\n{team}: {len(sub)} rows, {sub.MatchURL.nunique()} matches, "
-              f"{sub.Player.nunique()} players")
-        print(sub.groupby("Player")[["Min", "Fls", "Fld", "Sh"]].sum()
-              .sort_values("Min", ascending=False).head(10).to_string())
+    label = SCRAPED_LEAGUES.get(args.slug, args.slug)
+    frame = build_scraped_matches(players, schedule, competition=label)
+    ensure_dirs()
+    out = scraped_path(args.slug)
+    frame.to_parquet(out, index=False)
 
-print(f"\nwrote {out}")
+    seasons = frame.groupby("Season_End_Year").agg(rows=("Player", "size"), matches=("MatchURL", "nunique"))
+    print(f"\nplayer-matches: {len(frame):,}  matches: {frame['MatchURL'].nunique()}")
+    print(seasons.to_string())
+    print(f"dates: {frame['Match_Date'].min().date()} to {frame['Match_Date'].max().date()}")
+    print(f"home/away balance: {frame['is_home'].mean():.2f} (should be close to 0.50)")
+    print(f"saved to {out}")
+
+
+if __name__ == "__main__":
+    main()

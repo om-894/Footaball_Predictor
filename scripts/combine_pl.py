@@ -1,15 +1,21 @@
-"""Combine the mirrored Premier League history with a live 2026/27 scrape.
+"""
+Combine the mirrored Premier League history with live scrapes into one table.
 
-The mirror runs 2017/18 to September 2025 (81k player-matches) but stops there; the live
-scrape covers the current season only (a few matchweeks). Neither alone is enough to
-forecast a match tonight: the mirror has no current squads, and the scrape has no history.
+The mirror runs from 2017/18 to September 2025 and the live scrape covers recent matches,
+so neither alone can forecast a match this week. Only the columns both sources carry are
+kept, which drops xG, touches and passes. Extra scraped leagues can be added too, e.g. the
+Eredivisie before a European tie, so a foreign side's players have some history.
 
-They are joined on the columns both actually carry. That intersection is narrower than the
-mirror's own schema -- FBref's match summary has no xG, touches or passes -- so the price
-of current data is a thinner feature set. Stated here rather than discovered later.
+INPUTS        data/interim/player_matches.parquet (from `footy fetch`)
+              data/interim/ENG-Premier-League_player_matches.parquet plus any extra slugs
+              (from scripts/build_scraped.py)
+OUTPUTS       data/interim/pl_combined_player_matches.parquet
+REQUIREMENTS  pip install -e .
+
+Example:  python scripts/combine_pl.py NED-Eredivisie
 """
 
-import sys
+import argparse
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -17,8 +23,14 @@ warnings.filterwarnings("ignore")
 import pandas as pd
 
 from footy.config import COMBINED_PATH, COMBINED_TARGETS, PLAYER_MATCHES_PATH, scraped_path
-from footy.ingest import fbref_match_id
+from footy.ingest import drop_unusable_rows, fbref_match_id
 
+
+# --------------------------------------------------------------------------- #
+# CONFIG
+# --------------------------------------------------------------------------- #
+
+# columns both sources carry
 KEEP = [
     "MatchURL", "Match_Date", "Matchweek", "Season_End_Year", "Competition_Name",
     "Team", "Opponent", "Home_Away", "is_home", "Player", "Nation", "Pos", "Age",
@@ -27,7 +39,18 @@ KEEP = [
 ]
 
 
-def _align(frame: pd.DataFrame, source: str) -> pd.DataFrame:
+# --------------------------------------------------------------------------- #
+# COMBINING
+# --------------------------------------------------------------------------- #
+
+def read_table(path, how: str) -> pd.DataFrame:
+    if not path.exists():
+        raise SystemExit(f"{path} not found, run {how} first")
+    return pd.read_parquet(path)
+
+
+def align(frame: pd.DataFrame, source: str) -> pd.DataFrame:
+    """Keep the shared columns, adding any a source lacks, and tag each row with its source."""
     out = frame.copy()
     for column in KEEP:
         if column not in out.columns:
@@ -41,60 +64,39 @@ def _align(frame: pd.DataFrame, source: str) -> pd.DataFrame:
 
 
 def main() -> None:
-    """Usage: combine_pl.py [extra-slug ...]
+    parser = argparse.ArgumentParser(description="Combine the mirrored PL history with live scrapes.")
+    parser.add_argument("extra", nargs="*", help="extra scraped slugs to add, e.g. NED-Eredivisie")
+    args = parser.parse_args()
 
-    Always joins the mirror with the Premier League scrape. Extra slugs -- e.g.
-    ``NED-Eredivisie`` for a European opponent -- are appended too. Cross-league rows
-    give a foreign side's players real history and give the opponent-form features
-    something to work from; the caveat is that refereeing norms differ by league and
-    there is no league indicator feature, so treat foreign-side legs with more suspicion.
-    """
-    mirror_path = PLAYER_MATCHES_PATH
-    slugs = ["ENG-Premier-League", *sys.argv[1:]]
-
-    frames = [_align(pd.read_parquet(mirror_path), "mirror")]
-    print(f"mirror: {len(frames[0]):,} rows to {frames[0].Match_Date.max().date()}")
-    for slug in slugs:
-        path = scraped_path(slug)
-        if not path.exists():
-            raise SystemExit(f"{path} missing -- run scripts/build_scraped.py {slug} first")
-        live = _align(pd.read_parquet(path), slug)
-        print(f"{slug}: {len(live):,} rows to {live.Match_Date.max().date()}")
-        frames.append(live)
+    mirror = align(read_table(PLAYER_MATCHES_PATH, "`footy fetch`"), "mirror")
+    print(f"mirror: {len(mirror):,} rows to {mirror['Match_Date'].max().date()}")
+    scraped = []
+    for slug in ["ENG-Premier-League", *args.extra]:
+        live = align(read_table(scraped_path(slug), f"scripts/build_scraped.py {slug}"), slug)
+        print(f"{slug}: {len(live):,} rows to {live['Match_Date'].max().date()}")
+        scraped.append(live)
 
     # the mirror stores full match URLs and the scrape stores bare ids, so compare on the id
-    scraped_ids = set(pd.concat(frames[1:])["MatchURL"].map(fbref_match_id))
-    overlap = frames[0]["MatchURL"].map(fbref_match_id).isin(scraped_ids)
+    scraped_ids = set(pd.concat(scraped)["MatchURL"].map(fbref_match_id))
+    overlap = mirror["MatchURL"].map(fbref_match_id).isin(scraped_ids)
     if overlap.any():
-        matches = frames[0].loc[overlap, "MatchURL"].nunique()
+        matches = mirror.loc[overlap, "MatchURL"].nunique()
         print(f"dropped {overlap.sum():,} mirror rows from {matches} matches the scrape also has")
-    frames[0] = frames[0][~overlap]
 
-    combined = pd.concat(frames, ignore_index=True)
+    combined = pd.concat([mirror[~overlap], *scraped], ignore_index=True)
     # a match that appears in two scraped tables keeps its last copy
     before = len(combined)
     combined = combined.drop_duplicates(subset=["MatchURL", "Team", "Player"], keep="last")
-    if len(combined) != before:
-        print(f"dropped {before - len(combined):,} overlapping rows")
+    if len(combined) < before:
+        print(f"dropped {before - len(combined):,} rows saved twice")
+    combined = drop_unusable_rows(combined)
+    combined = combined.sort_values(["Match_Date", "MatchURL", "Team", "Player"]).reset_index(drop=True)
+    combined.to_parquet(COMBINED_PATH, index=False)
 
-    combined = combined.dropna(subset=["Match_Date", "Min", "Player", "Team"])
-    combined = combined[combined["Min"] > 0]
-    combined = combined.sort_values(["Match_Date", "MatchURL", "Team", "Player"])
-    combined = combined.reset_index(drop=True)
-
-    out = COMBINED_PATH
-    combined.to_parquet(out, index=False)
-
-    print(f"\ncombined: {len(combined):,} rows, {combined.MatchURL.nunique():,} matches")
-    print(combined.groupby("Season_End_Year").agg(
-        rows=("Player", "size"), matches=("MatchURL", "nunique")).tail(6).to_string())
-
-    for team in ("Sunderland", "Hull City", "AZ Alkmaar"):
-        sub = combined[combined.Team == team]
-        recent = sub[sub.Match_Date >= "2026-08-01"]
-        print(f"\n{team}: {len(sub):,} rows total, {len(recent)} since Aug 2026, "
-              f"{recent.Player.nunique()} current players")
-    print(f"\nwrote {out}")
+    seasons = combined.groupby("Season_End_Year").agg(rows=("Player", "size"), matches=("MatchURL", "nunique"))
+    print(f"\ncombined: {len(combined):,} rows, {combined['MatchURL'].nunique():,} matches")
+    print(seasons.tail(6).to_string())
+    print(f"saved to {COMBINED_PATH}")
 
 
 if __name__ == "__main__":
