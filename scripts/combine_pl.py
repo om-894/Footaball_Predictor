@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore")
 import pandas as pd
 
 from footy.config import INTERIM_DIR
+from footy.ingest import fbref_match_id
 
 #: Targets present in both sources. The mirror has total tackles (`Tkl`) and the live
 #: summary only tackles won (`TklW`), so neither survives the intersection.
@@ -65,8 +66,16 @@ def main() -> None:
         print(f"{slug}: {len(live):,} rows to {live.Match_Date.max().date()}")
         frames.append(live)
 
+    # the mirror stores full match URLs and the scrape stores bare ids, so compare on the id
+    scraped_ids = set(pd.concat(frames[1:])["MatchURL"].map(fbref_match_id))
+    overlap = frames[0]["MatchURL"].map(fbref_match_id).isin(scraped_ids)
+    if overlap.any():
+        matches = frames[0].loc[overlap, "MatchURL"].nunique()
+        print(f"dropped {overlap.sum():,} mirror rows from {matches} matches the scrape also has")
+    frames[0] = frames[0][~overlap]
+
     combined = pd.concat(frames, ignore_index=True)
-    # The live scrape may re-cover matches the mirror already had; keep the live copy.
+    # a match that appears in two scraped tables keeps its last copy
     before = len(combined)
     combined = combined.drop_duplicates(subset=["MatchURL", "Team", "Player"], keep="last")
     if len(combined) != before:

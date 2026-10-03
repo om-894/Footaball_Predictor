@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from footy.ingest import (
+    fbref_match_id,
     parse_age,
     parse_matchweek,
     split_positions,
@@ -62,6 +63,18 @@ def test_parse_age(value, expected) -> None:
 def test_split_positions(value, expected) -> None:
     """FBref lists every position occupied, so this is multi-label, not categorical."""
     assert split_positions(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("https://fbref.com/en/matches/e3c3ddf0/Arsenal-Leicester-City-August-11-2017-Premier-League", "e3c3ddf0"),
+        ("fc5c9711", "fc5c9711"),
+    ],
+)
+def test_fbref_match_id(value, expected) -> None:
+    """The mirror stores full match URLs and the live scrape stores bare ids."""
+    assert fbref_match_id(value) == expected
 
 
 def test_season_code() -> None:

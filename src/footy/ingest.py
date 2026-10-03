@@ -29,6 +29,7 @@ ID_COLUMNS = [
 
 _MATCHWEEK_RE = re.compile(r"Matchweek\s+(\d+)")
 _AGE_RE = re.compile(r"^(\d+)-(\d+)$")
+_MATCH_ID_RE = re.compile(r"/matches/([0-9a-f]{8})/")
 
 
 def parse_matchweek(value: object) -> float:
@@ -50,6 +51,13 @@ def parse_age(value: object) -> float:
         return np.nan
     years, days = int(match.group(1)), int(match.group(2))
     return years + days / 365.25
+
+
+def fbref_match_id(value: object) -> str:
+    """FBref's 8 character match id, taken from a match URL or passed through if already an id."""
+    text = str(value)
+    match = _MATCH_ID_RE.search(text)
+    return match.group(1) if match else text
 
 
 def split_positions(value: object) -> list[str]:
