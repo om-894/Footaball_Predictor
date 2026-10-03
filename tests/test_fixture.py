@@ -117,6 +117,16 @@ def test_lineup_matching_is_case_and_accent_insensitive(history, kickoff) -> Non
     assert "Enzo Le Fée" in set(match_lineup(accented, ["Enzo Le Fee"])["Player"])
 
 
+def test_lineup_matching_handles_letters_without_accents(history, kickoff) -> None:
+    """ø, đ and ł have no accent to strip, so they are swapped for plain letters."""
+    from footy.fixture import match_lineup
+
+    candidates = build_fixture_rows(history, TEAMS[0], TEAMS[1], kickoff)
+    renamed = candidates.copy()
+    renamed.loc[renamed.index[0], "Player"] = "Martin Ødegaard"
+    assert "Martin Ødegaard" in set(match_lineup(renamed, ["Odegaard"])["Player"])
+
+
 def test_ambiguous_surname_is_not_guessed(history, kickoff) -> None:
     """Two players sharing a surname must not be silently resolved to one of them."""
     from footy.fixture import match_lineup

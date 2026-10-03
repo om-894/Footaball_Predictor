@@ -26,7 +26,7 @@ import pandas as pd
 from footy.config import FULL_MATCH_MINUTES
 from footy.evaluate import CountDistribution
 from footy.features import build_features, feature_columns
-from footy.ingest import add_position_columns
+from footy.ingest import add_position_columns, name_key
 from footy.models.gbm import PoissonGBM
 from footy.models.minutes import MinutesModel
 
@@ -121,20 +121,14 @@ def match_lineup(candidates: pd.DataFrame, lineup: list[str]) -> pd.DataFrame:
     dropped, first names abbreviated. A surname match is enough to be unambiguous within
     one squad, and anything unmatched is reported rather than silently ignored.
     """
-    from unicodedata import normalize
-
-    def key(name: str) -> str:
-        stripped = normalize("NFKD", str(name)).encode("ascii", "ignore").decode()
-        return stripped.casefold().strip()
-
-    known = {key(p): p for p in candidates["Player"]}
+    known = {name_key(p): p for p in candidates["Player"]}
     surnames: dict[str, list[str]] = {}
     for k, original in known.items():
         surnames.setdefault(k.split()[-1] if k.split() else k, []).append(original)
 
     resolved, missing = [], []
     for raw in lineup:
-        k = key(raw)
+        k = name_key(raw)
         if k in known:
             resolved.append(known[k])
             continue

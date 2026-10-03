@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+from unicodedata import normalize
 
 import numpy as np
 import pandas as pd
@@ -28,6 +29,12 @@ ID_COLUMNS = [
 _MATCHWEEK_RE = re.compile(r"Matchweek\s+(\d+)")
 _AGE_RE = re.compile(r"^(\d+)-(\d+)$")
 _MATCH_ID_RE = re.compile(r"/matches/([0-9a-f]{8})/")
+
+# letters that unicode normalisation cannot split into a plain letter plus an accent
+_LETTER_SWAPS = str.maketrans({
+    "ø": "o", "Ø": "O", "đ": "d", "Đ": "D", "ł": "l", "Ł": "L",
+    "æ": "ae", "Æ": "AE", "ß": "ss", "ı": "i", "’": "'",
+})
 
 
 def parse_matchweek(value: object) -> float:
@@ -56,6 +63,13 @@ def fbref_match_id(value: object) -> str:
     text = str(value)
     match = _MATCH_ID_RE.search(text)
     return match.group(1) if match else text
+
+
+def name_key(name: object) -> str:
+    """Lowercase plain-ASCII form of a name for loose matching, e.g. 'Martin Ødegaard' gives 'martin odegaard'."""
+    swapped = str(name).translate(_LETTER_SWAPS)
+    stripped = normalize("NFKD", swapped).encode("ascii", "ignore").decode()
+    return stripped.casefold().strip()
 
 
 def split_positions(value: object) -> list[str]:

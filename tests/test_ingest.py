@@ -8,6 +8,7 @@ import pytest
 
 from footy.ingest import (
     fbref_match_id,
+    name_key,
     parse_age,
     parse_matchweek,
     split_positions,
@@ -75,6 +76,21 @@ def test_split_positions(value, expected) -> None:
 def test_fbref_match_id(value, expected) -> None:
     """The mirror stores full match URLs and the live scrape stores bare ids."""
     assert fbref_match_id(value) == expected
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("Enzo Le Fée", "enzo le fee"),
+        ("Martin Ødegaard", "martin odegaard"),
+        ("Đorđe Petrović", "dorde petrovic"),
+        ("Nico O’Reilly", "nico o'reilly"),
+        ("  JACK GREALISH ", "jack grealish"),
+    ],
+)
+def test_name_key(name, expected) -> None:
+    """Typed names rarely carry FBref's accents, so matching drops them."""
+    assert name_key(name) == expected
 
 
 def test_season_code() -> None:
