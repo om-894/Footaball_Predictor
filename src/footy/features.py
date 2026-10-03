@@ -113,13 +113,8 @@ def add_player_form(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.drop(columns=["_exposure90"])
 
     # Minutes get the same treatment; they are the exposure the count models need.
-    minutes_lagged = frame.groupby("Player", sort=False)["Min"].shift(1)
     for halflife in EWMA_HALFLIVES:
-        frame[f"Min_ewm{halflife}"] = (
-            minutes_lagged.groupby(frame["Player"], sort=False)
-            .ewm(halflife=halflife, ignore_na=True).mean()
-            .reset_index(level=0, drop=True)
-        )
+        frame[f"Min_ewm{halflife}"] = _lagged_ewma(frame, "Player", ["Min"], halflife)["Min"]
 
     # Experience so far. cumcount is already exclusive of the current row.
     grouped = frame.groupby("Player", sort=False)
@@ -142,22 +137,13 @@ def add_rest_and_congestion(frame: pd.DataFrame) -> pd.DataFrame:
     frame["days_since_last"] = (frame["Match_Date"] - previous).dt.days
 
     # closed="left" makes the window cover [t - 15d, t), excluding the current match.
-    frame["matches_last_14d"] = (
+    window = (
         frame.set_index("Match_Date")
         .groupby("Player", sort=False)["Min"]
         .rolling("15D", closed="left")
-        .count()
-        .reset_index(level=0, drop=True)
-        .to_numpy()
     )
-    frame["minutes_last_14d"] = (
-        frame.set_index("Match_Date")
-        .groupby("Player", sort=False)["Min"]
-        .rolling("15D", closed="left")
-        .sum()
-        .reset_index(level=0, drop=True)
-        .to_numpy()
-    )
+    frame["matches_last_14d"] = window.count().reset_index(level=0, drop=True).to_numpy()
+    frame["minutes_last_14d"] = window.sum().reset_index(level=0, drop=True).to_numpy()
     # An empty window means the player genuinely played nothing in the fortnight, which
     # is zero rather than unknown. `days_since_last` stays NaN on debut, correctly.
     frame[["matches_last_14d", "minutes_last_14d"]] = frame[

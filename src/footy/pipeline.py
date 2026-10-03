@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from footy.config import TARGETS
+from footy.config import FULL_MATCH_MINUTES, TARGETS
 from footy.datasets import Fold, assert_fold_is_ordered, season_folds
 from footy.evaluate import (
     CountDistribution,
@@ -73,6 +73,52 @@ def _score_model(
     return row
 
 
+def _fit_network(train, valid, X_train, X_valid, targets, seed) -> NegBinMLP:
+    """Train the network on every target at once, early stopping on the validation season."""
+    return NegBinMLP(list(targets), TrainConfig(seed=seed)).fit(
+        X_train,
+        train[list(targets)],
+        train["Min"].to_numpy(dtype=float),
+        train["Player"],
+        validation=(
+            X_valid,
+            valid[list(targets)],
+            valid["Min"].to_numpy(dtype=float),
+            valid["Player"],
+        ),
+    )
+
+
+def _fit_count_models(target, train, valid, X_train, X_valid, fold_name, seed) -> dict:
+    """Fit the baselines, GLMs and gradient boosting for one target, skipping any that fail."""
+    y_train = train[target].to_numpy(dtype=float)
+    minutes_train = train["Min"].to_numpy(dtype=float)
+
+    fitted = {}
+    for model in (
+        GlobalMean(),
+        PositionMean(),
+        ShrunkCareerRate(target),
+        NaivePer90EWMA(target),
+        PlayerEWMA(target),
+        PoissonGLM(),
+        NegativeBinomialGLM(),
+    ):
+        try:
+            fitted[model.name] = model.fit(X_train, y_train, minutes_train)
+        except Exception as exc:  # noqa: BLE001 - a failed model must not kill the run
+            log.warning("%s failed on %s/%s: %s", model.name, target, fold_name, exc)
+
+    gbm = PoissonGBM(seed=seed).set_validation(
+        X_valid, valid[target].to_numpy(dtype=float), valid["Min"].to_numpy(dtype=float)
+    )
+    try:
+        fitted[gbm.name] = gbm.fit(X_train, y_train, minutes_train)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("PoissonGBM failed on %s/%s: %s", target, fold_name, exc)
+    return fitted
+
+
 def run_fold(
     frame: pd.DataFrame,
     fold: Fold,
@@ -101,7 +147,7 @@ def run_fold(
 
     # -- stage 1: minutes --------------------------------------------------------
     minutes_model = MinutesModel(seed=seed).fit(X_train, minutes_train)
-    predicted_minutes = np.clip(minutes_model.predict(X_test), 1.0, 90.0)
+    predicted_minutes = np.clip(minutes_model.predict(X_test), 1.0, FULL_MATCH_MINUTES)
     minutes_mae = float(np.abs(predicted_minutes - minutes_test).mean())
     log.info("fold %s: minutes model MAE %.2f", fold.name, minutes_mae)
 
@@ -117,48 +163,12 @@ def run_fold(
     predictions["fold"] = fold.name
 
     # -- the neural net is trained once for all targets jointly ------------------
-    network = None
-    if include_nn:
-        network = NegBinMLP(list(targets), TrainConfig(seed=seed)).fit(
-            X_train,
-            train[list(targets)],
-            minutes_train,
-            train["Player"],
-            validation=(
-                X_valid,
-                valid[list(targets)],
-                valid["Min"].to_numpy(dtype=float),
-                valid["Player"],
-            ),
-        )
+    network = _fit_network(train, valid, X_train, X_valid, targets, seed) if include_nn else None
 
     # -- stage 2: one count model per target -------------------------------------
     for target in targets:
-        y_train = train[target].to_numpy(dtype=float)
         y_test = test[target].to_numpy(dtype=float)
-
-        fitted: dict[str, object] = {}
-        for model in (
-            GlobalMean(),
-            PositionMean(),
-            ShrunkCareerRate(target),
-            NaivePer90EWMA(target),
-            PlayerEWMA(target),
-            PoissonGLM(),
-            NegativeBinomialGLM(),
-        ):
-            try:
-                fitted[model.name] = model.fit(X_train, y_train, minutes_train)
-            except Exception as exc:  # noqa: BLE001 - a failed model must not kill the run
-                log.warning("%s failed on %s/%s: %s", model.name, target, fold.name, exc)
-
-        gbm = PoissonGBM(seed=seed).set_validation(
-            X_valid, valid[target].to_numpy(dtype=float), valid["Min"].to_numpy(dtype=float)
-        )
-        try:
-            fitted[gbm.name] = gbm.fit(X_train, y_train, minutes_train)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("PoissonGBM failed on %s/%s: %s", target, fold.name, exc)
+        fitted = _fit_count_models(target, train, valid, X_train, X_valid, fold.name, seed)
 
         for mode in modes:
             exposure = exposure_by_mode[mode]

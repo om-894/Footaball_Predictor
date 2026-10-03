@@ -14,7 +14,8 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor, early_stopping, log_evaluation
 
-from footy.models.base import CountModel
+from footy.config import FULL_MATCH_MINUTES
+from footy.models.base import CountModel, log_exposure
 
 
 class PoissonGBM(CountModel):
@@ -53,12 +54,12 @@ class PoissonGBM(CountModel):
 
     def _fit_rate(self, X: pd.DataFrame, y: np.ndarray, exposure: np.ndarray) -> None:
         self.model_ = LGBMRegressor(random_state=self.seed, **self.params)
-        offset = np.log(np.clip(exposure, 1e-6, None))
+        offset = log_exposure(exposure)
 
         fit_kwargs = {"init_score": offset}
         if self.eval_set_ is not None:
             X_valid, y_valid, minutes_valid = self.eval_set_
-            valid_offset = np.log(np.clip(minutes_valid / 90.0, 1e-6, None))
+            valid_offset = log_exposure(minutes_valid / FULL_MATCH_MINUTES)
             fit_kwargs.update(
                 eval_set=[(X_valid.reindex(columns=X.columns), y_valid)],
                 eval_init_score=[valid_offset],

@@ -12,7 +12,12 @@ import numpy as np
 import pandas as pd
 
 from footy.config import SCRAPED_TARGETS
-from footy.ingest import parse_age, split_positions, validate_player_matches
+from footy.ingest import (
+    add_position_columns,
+    drop_unusable_rows,
+    parse_age,
+    validate_player_matches,
+)
 
 log = logging.getLogger(__name__)
 
@@ -165,14 +170,8 @@ def build_scraped_matches(
 
     # -- derived identity ---------------------------------------------------------
     frame = resolve_home_away(frame)
-    frame["positions"] = frame["Pos"].map(split_positions)
-    frame["is_gk"] = frame["positions"].map(lambda p: int("GK" in p))
-
-    before = len(frame)
-    frame = frame.dropna(subset=["Match_Date", "Min", "Player", "Team"])
-    frame = frame[frame["Min"] > 0]
-    if len(frame) != before:
-        log.info("dropped %d unusable rows", before - len(frame))
+    frame = add_position_columns(frame)
+    frame = drop_unusable_rows(frame)
 
     frame = frame.sort_values(["Match_Date", "MatchURL", "Team", "Player"])
     frame = frame.reset_index(drop=True)

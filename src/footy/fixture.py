@@ -26,7 +26,7 @@ import pandas as pd
 from footy.config import FULL_MATCH_MINUTES
 from footy.evaluate import CountDistribution
 from footy.features import build_features, feature_columns
-from footy.ingest import split_positions
+from footy.ingest import add_position_columns
 from footy.models.gbm import PoissonGBM
 from footy.models.minutes import MinutesModel
 
@@ -110,10 +110,8 @@ def build_fixture_rows(
     frame["Matchweek"] = history["Matchweek"].max()
     frame["Competition_Name"] = history["Competition_Name"].iloc[0]
 
-    # Match the shape ingest produces, so the concatenated frame is homogeneous.
-    frame["positions"] = frame["Pos"].map(split_positions)
-    frame["is_gk"] = frame["positions"].map(lambda p: int("GK" in p))
-    return frame
+    # same position columns as ingest, so the history and fixture rows concatenate cleanly
+    return add_position_columns(frame)
 
 
 def match_lineup(candidates: pd.DataFrame, lineup: list[str]) -> pd.DataFrame:

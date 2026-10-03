@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from footy.models.base import CountModel, clean_matrix
+from footy.models.base import CountModel, clean_matrix, log_exposure
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class PoissonGLM(CountModel):
         self.selected_ = selected
 
         design = sm.add_constant(standardised, has_constant="add")
-        offset = np.log(np.clip(exposure, 1e-6, None))
+        offset = log_exposure(exposure)
 
         model = sm.GLM(y, design, family=self._make_family(), offset=offset)
         try:

@@ -15,14 +15,19 @@ from footy.config import EWMA_HALFLIVES
 from footy.models.base import CountModel
 
 
+def _pooled_rate(y: np.ndarray, exposure: np.ndarray) -> float:
+    """Total count over total exposure, or 0 when there is no exposure."""
+    total = exposure.sum()
+    return float(y.sum() / total) if total > 0 else 0.0
+
+
 class GlobalMean(CountModel):
     """One rate for everyone. The floor: any model below this is broken."""
 
     name = "GlobalMean"
 
     def _fit_rate(self, X: pd.DataFrame, y: np.ndarray, exposure: np.ndarray) -> None:
-        total_exposure = exposure.sum()
-        self.rate_ = float(y.sum() / total_exposure) if total_exposure > 0 else 0.0
+        self.rate_ = _pooled_rate(y, exposure)
 
     def _predict_rate(self, X: pd.DataFrame) -> np.ndarray:
         return np.full(len(X), self.rate_)
@@ -39,11 +44,8 @@ class PositionMean(CountModel):
         self.rates_ = {}
         for group in groups:
             mask = X[group].to_numpy() == 1
-            group_exposure = exposure[mask].sum()
-            self.rates_[group] = (
-                float(y[mask].sum() / group_exposure) if group_exposure > 0 else 0.0
-            )
-        self.default_ = float(y.sum() / exposure.sum()) if exposure.sum() > 0 else 0.0
+            self.rates_[group] = _pooled_rate(y[mask], exposure[mask])
+        self.default_ = _pooled_rate(y, exposure)
 
     def _predict_rate(self, X: pd.DataFrame) -> np.ndarray:
         rate = np.full(len(X), self.default_)
@@ -90,7 +92,7 @@ class PlayerEWMA(CountModel):
         return rates.fillna(self.prior_).clip(lower=0.0).to_numpy()
 
     def _fit_rate(self, X: pd.DataFrame, y: np.ndarray, exposure: np.ndarray) -> None:
-        self.prior_ = float(y.sum() / exposure.sum()) if exposure.sum() > 0 else 0.0
+        self.prior_ = _pooled_rate(y, exposure)
         raw = self._rates(X)
         predicted = (raw * exposure).sum()
         self.scale_ = float(y.sum() / predicted) if predicted > 0 else 1.0
@@ -128,12 +130,13 @@ class ShrunkCareerRate(CountModel):
         self.target = target
         self.column = f"{target}_career_p90"
 
+    def _rates(self, X: pd.DataFrame) -> np.ndarray:
+        return X[self.column].fillna(self.prior_).clip(lower=0.0).to_numpy()
+
     def _fit_rate(self, X: pd.DataFrame, y: np.ndarray, exposure: np.ndarray) -> None:
-        self.prior_ = float(y.sum() / exposure.sum()) if exposure.sum() > 0 else 0.0
-        raw = X[self.column].fillna(self.prior_).clip(lower=0.0).to_numpy()
-        predicted = (raw * exposure).sum()
+        self.prior_ = _pooled_rate(y, exposure)
+        predicted = (self._rates(X) * exposure).sum()
         self.scale_ = float(y.sum() / predicted) if predicted > 0 else 1.0
 
     def _predict_rate(self, X: pd.DataFrame) -> np.ndarray:
-        raw = X[self.column].fillna(self.prior_).clip(lower=0.0).to_numpy()
-        return raw * self.scale_
+        return self._rates(X) * self.scale_

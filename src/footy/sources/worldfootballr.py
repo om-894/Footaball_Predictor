@@ -105,12 +105,16 @@ COLUMN_MAP: dict[str, dict[str, str]] = {
 DEFAULT_STAT_TYPES = ("misc", "possession", "passing", "defense")
 
 
-def asset_url(league: str, stat_type: str) -> str:
-    """URL of one published FBref table."""
+def league_code(league: str) -> str:
+    """worldfootballR's code for a league, e.g. ENG_M_1st for ENG-PL."""
     if league not in LEAGUES:
         raise KeyError(f"Unknown league {league!r}. Known: {sorted(LEAGUES)}")
-    code = LEAGUES[league]
-    return f"{WFR_RELEASE_BASE}/{code}_{stat_type}_player_advanced_match_stats.csv"
+    return LEAGUES[league]
+
+
+def asset_url(league: str, stat_type: str) -> str:
+    """URL of one published FBref table."""
+    return f"{WFR_RELEASE_BASE}/{league_code(league)}_{stat_type}_player_advanced_match_stats.csv"
 
 
 def _load_table(
@@ -123,7 +127,7 @@ def _load_table(
         )
 
     url = asset_url(league, stat_type)
-    path = downloader.fetch(url, f"{LEAGUES[league]}_{stat_type}.csv", force=force)
+    path = downloader.fetch(url, f"{league_code(league)}_{stat_type}.csv", force=force)
     frame = pd.read_csv(path, low_memory=False)
 
     mapping = COLUMN_MAP[stat_type]
@@ -210,11 +214,8 @@ def load_match_shooting(
     would also carry them, but only for 2 of the 8 seasons -- and shot events give us
     shot distance and body part for free, which an aggregate never could.
     """
-    if league not in LEAGUES:
-        raise KeyError(f"Unknown league {league!r}. Known: {sorted(LEAGUES)}")
-
+    code = league_code(league)
     downloader = downloader or CachedDownloader()
-    code = LEAGUES[league]
     path = downloader.fetch(
         SHOOTING_URL.format(code=code), f"{code}_shooting.csv", force=force
     )

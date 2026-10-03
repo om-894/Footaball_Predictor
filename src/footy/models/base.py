@@ -60,6 +60,11 @@ class CountModel(ABC):
         return CountDistribution(self.predict(X, minutes), self.alpha_)
 
 
+def log_exposure(exposure: np.ndarray) -> np.ndarray:
+    """Log of minutes / 90, floored so a zero can never give -inf."""
+    return np.log(np.clip(exposure, 1e-6, None))
+
+
 def clean_matrix(X: pd.DataFrame, columns: list[str], medians: pd.Series | None = None):
     """Align columns and fill gaps.
 

@@ -69,6 +69,23 @@ def split_positions(value: object) -> list[str]:
     return [part.strip() for part in value.split(",") if part.strip()]
 
 
+def add_position_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Add the `positions` list and the `is_gk` flag from FBref's `Pos` string."""
+    frame["positions"] = frame["Pos"].map(split_positions)
+    frame["is_gk"] = frame["positions"].map(lambda p: int("GK" in p))
+    return frame
+
+
+def drop_unusable_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows with no date, player, team or minutes."""
+    before = len(frame)
+    frame = frame.dropna(subset=["Match_Date", "Min", "Player", "Team"])
+    frame = frame[frame["Min"] > 0]
+    if len(frame) != before:
+        log.info("dropped %d rows with no date, player, team or minutes", before - len(frame))
+    return frame
+
+
 def build_player_matches(
     league: str = "ENG-PL",
     *,
@@ -109,15 +126,8 @@ def build_player_matches(
         frame["Home_Away"].str.lower().eq("home"), frame["Away_Team"], frame["Home_Team"]
     )
     frame["is_home"] = frame["Home_Away"].str.lower().eq("home").astype(int)
-    frame["positions"] = frame["Pos"].map(split_positions)
-    frame["is_gk"] = frame["positions"].map(lambda p: int("GK" in p))
-
-    # -- rows we cannot use ------------------------------------------------------
-    before = len(frame)
-    frame = frame.dropna(subset=["Match_Date", "Min", "Player", "Team"])
-    frame = frame[frame["Min"] > 0]
-    if len(frame) != before:
-        log.info("dropped %d rows with no date, player or minutes", before - len(frame))
+    frame = add_position_columns(frame)
+    frame = drop_unusable_rows(frame)
 
     # A left-joined table contributes NaN only where a player has no entry in it. For
     # count stats that genuinely means zero, but we log the rate so a badly broken join

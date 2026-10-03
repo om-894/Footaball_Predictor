@@ -32,6 +32,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from footy.config import FULL_MATCH_MINUTES
 from footy.evaluate import CountDistribution
+from footy.models.base import log_exposure
 
 log = logging.getLogger(__name__)
 
@@ -72,6 +73,18 @@ def negative_binomial_nll(
         + inverse * (torch.log(inverse) - torch.log(inverse + mu))
         + y * (torch.log(mu) - torch.log(inverse + mu))
     )
+
+
+def _offset_tensor(minutes: np.ndarray) -> torch.Tensor:
+    """Log exposure as a column tensor, added to the network's log rate."""
+    offset = log_exposure(np.asarray(minutes) / FULL_MATCH_MINUTES)
+    return torch.as_tensor(offset, dtype=torch.float32).unsqueeze(1)
+
+
+def _mean_nll(model: nn.Module, x, players, y, offset) -> torch.Tensor:
+    """Mean negative binomial NLL of the network on one batch."""
+    mu = torch.exp(torch.clamp(model(x, players) + offset, -20, 20))
+    return negative_binomial_nll(y, mu, model.log_alpha).mean()
 
 
 @dataclass
@@ -173,10 +186,7 @@ class NegBinMLP:
 
         features = self._prepare(X, fit=True)
         targets = torch.as_tensor(y[self.targets].to_numpy(dtype=np.float32))
-        offset = torch.as_tensor(
-            np.log(np.clip(np.asarray(minutes) / FULL_MATCH_MINUTES, 1e-6, None)),
-            dtype=torch.float32,
-        ).unsqueeze(1)
+        offset = _offset_tensor(minutes)
         player_codes = self._encode_players(players)
 
         device = torch.device(self.config.device)
@@ -206,10 +216,7 @@ class NegBinMLP:
                 self._prepare(X_valid).to(device),
                 self._encode_players(players_valid).to(device),
                 torch.as_tensor(y_valid[self.targets].to_numpy(dtype=np.float32)).to(device),
-                torch.as_tensor(
-                    np.log(np.clip(np.asarray(minutes_valid) / FULL_MATCH_MINUTES, 1e-6, None)),
-                    dtype=torch.float32,
-                ).unsqueeze(1).to(device),
+                _offset_tensor(minutes_valid).to(device),
             )
 
         best_loss = float("inf")
@@ -225,9 +232,7 @@ class NegBinMLP:
                 batch_offset = batch_offset.to(device)
 
                 optimizer.zero_grad(set_to_none=True)
-                log_rate = model(batch_x, batch_p)
-                mu = torch.exp(torch.clamp(log_rate + batch_offset, -20, 20))
-                loss = negative_binomial_nll(batch_y, mu, model.log_alpha).mean()
+                loss = _mean_nll(model, batch_x, batch_p, batch_y, batch_offset)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
                 optimizer.step()
@@ -238,11 +243,7 @@ class NegBinMLP:
 
             model.eval()
             with torch.no_grad():
-                valid_x, valid_p, valid_y, valid_offset = validation_tensors
-                mu = torch.exp(torch.clamp(model(valid_x, valid_p) + valid_offset, -20, 20))
-                validation_loss = negative_binomial_nll(
-                    valid_y, mu, model.log_alpha
-                ).mean().item()
+                validation_loss = _mean_nll(model, *validation_tensors).item()
 
             if validation_loss < best_loss - 1e-5:
                 best_loss = validation_loss
