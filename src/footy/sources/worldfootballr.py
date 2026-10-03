@@ -166,7 +166,7 @@ def load_player_match_stats(
     """Return one wide row per player-match, joined across the requested FBref tables."""
     if ANCHOR_TABLE not in stat_types:
         raise ValueError(
-            f"stat_types must include {ANCHOR_TABLE!r} -- it anchors the join and "
+            f"stat_types must include {ANCHOR_TABLE!r}, since it anchors the join and "
             "supplies match context"
         )
 
@@ -181,7 +181,7 @@ def load_player_match_stats(
         merged = merged.merge(table, on=JOIN_KEY, how="left", validate="one_to_one")
         if len(merged) != before:
             raise SourceError(
-                f"Joining {stat_type} changed the row count {before} -> {len(merged)}"
+                f"Joining {stat_type} changed the row count from {before} to {len(merged)}"
             )
 
     log.info("joined player-match frame: %d rows x %d cols", *merged.shape)
@@ -249,7 +249,7 @@ def load_match_shooting(
     )
 
     log.info(
-        "shooting: %d shots -> %d player-match rows", len(shots), len(aggregated)
+        "shooting: %d shots in %d player-match rows", len(shots), len(aggregated)
     )
     return aggregated
 

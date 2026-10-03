@@ -126,7 +126,7 @@ class CachedDownloader:
                 last_error = exc
                 backoff = 2.0**attempt
                 log.warning(
-                    "fetch failed (%s/%s) for %s: %s -- retrying in %.0fs",
+                    "fetch failed (%s/%s) for %s: %s, retrying in %.0fs",
                     attempt + 1, self.max_retries, name, exc, backoff,
                 )
                 time.sleep(backoff)
