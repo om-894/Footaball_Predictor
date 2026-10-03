@@ -43,6 +43,9 @@ from footy.models.nn import NegBinMLP, TrainConfig
 
 log = logging.getLogger(__name__)
 
+# the model every other model is compared against in the results tables
+BENCHMARK = "PlayerEWMA"
+
 
 @dataclass
 class FoldResult:
@@ -251,7 +254,7 @@ def summarise(scores: pd.DataFrame, mode: str = "forecast") -> pd.DataFrame:
 
 
 def improvement_over_baseline(
-    summary: pd.DataFrame, baseline: str = "PlayerEWMA", metric: str = "LogScore"
+    summary: pd.DataFrame, baseline: str = BENCHMARK, metric: str = "LogScore"
 ) -> pd.DataFrame:
     """Percentage improvement over the benchmark, per target.
 

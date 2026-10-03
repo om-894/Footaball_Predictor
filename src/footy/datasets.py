@@ -26,6 +26,14 @@ class Fold:
     test: np.ndarray
 
 
+def testable_seasons(
+    frame: pd.DataFrame, *, n_valid_seasons: int = 1, min_train_seasons: int = 2
+) -> list[int]:
+    """Seasons with enough earlier seasons before them to train and validate on."""
+    seasons = sorted(frame["Season_End_Year"].dropna().unique().astype(int))
+    return [int(s) for s in seasons[min_train_seasons + n_valid_seasons:]]
+
+
 def season_folds(
     frame: pd.DataFrame,
     *,
@@ -40,8 +48,11 @@ def season_folds(
     """
     seasons = sorted(frame["Season_End_Year"].dropna().unique().astype(int))
     if test_seasons is None:
-        # Everything we can afford a training and validation history for.
-        test_seasons = tuple(seasons[min_train_seasons + n_valid_seasons:])
+        test_seasons = tuple(
+            testable_seasons(
+                frame, n_valid_seasons=n_valid_seasons, min_train_seasons=min_train_seasons
+            )
+        )
 
     folds: list[Fold] = []
     for season in test_seasons:

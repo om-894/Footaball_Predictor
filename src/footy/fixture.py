@@ -48,9 +48,12 @@ def candidate_squad(
         & (history["Match_Date"] >= as_of - pd.Timedelta(days=window_days))
     ]
     if recent.empty:
+        last_played = history.loc[history["Team"] == team, "Match_Date"].max()
+        if pd.isna(last_played):
+            raise ValueError(f"No appearances for {team!r} anywhere in this history.")
         raise ValueError(
-            f"No appearances for {team!r} in the {window_days} days before {as_of.date()}. "
-            "Either the team name is wrong or the history does not reach this fixture."
+            f"No appearances for {team!r} in the {window_days} days before {as_of.date()} "
+            f"(last played {last_played.date()}), so the history does not reach this fixture."
         )
 
     squad = (
