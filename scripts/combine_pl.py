@@ -16,18 +16,14 @@ warnings.filterwarnings("ignore")
 
 import pandas as pd
 
-from footy.config import INTERIM_DIR
+from footy.config import COMBINED_PATH, COMBINED_TARGETS, PLAYER_MATCHES_PATH, scraped_path
 from footy.ingest import fbref_match_id
-
-#: Targets present in both sources. The mirror has total tackles (`Tkl`) and the live
-#: summary only tackles won (`TklW`), so neither survives the intersection.
-COMMON_TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY")
 
 KEEP = [
     "MatchURL", "Match_Date", "Matchweek", "Season_End_Year", "Competition_Name",
     "Team", "Opponent", "Home_Away", "is_home", "Player", "Nation", "Pos", "Age",
     "Min", "Referee", "positions", "is_gk", "CrdR", "Int", "Gls", "Ast",
-    *COMMON_TARGETS,
+    *COMBINED_TARGETS,
 ]
 
 
@@ -39,7 +35,7 @@ def _align(frame: pd.DataFrame, source: str) -> pd.DataFrame:
     out = out[KEEP]
     out["source"] = source
     out["Match_Date"] = pd.to_datetime(out["Match_Date"], errors="coerce")
-    for column in (*COMMON_TARGETS, "CrdR", "Int", "Gls", "Ast", "Min"):
+    for column in (*COMBINED_TARGETS, "CrdR", "Int", "Gls", "Ast", "Min"):
         out[column] = pd.to_numeric(out[column], errors="coerce")
     return out
 
@@ -53,13 +49,13 @@ def main() -> None:
     something to work from; the caveat is that refereeing norms differ by league and
     there is no league indicator feature, so treat foreign-side legs with more suspicion.
     """
-    mirror_path = INTERIM_DIR / "player_matches.parquet"
+    mirror_path = PLAYER_MATCHES_PATH
     slugs = ["ENG-Premier-League", *sys.argv[1:]]
 
     frames = [_align(pd.read_parquet(mirror_path), "mirror")]
     print(f"mirror: {len(frames[0]):,} rows to {frames[0].Match_Date.max().date()}")
     for slug in slugs:
-        path = INTERIM_DIR / f"{slug}_player_matches.parquet"
+        path = scraped_path(slug)
         if not path.exists():
             raise SystemExit(f"{path} missing -- run scripts/build_scraped.py {slug} first")
         live = _align(pd.read_parquet(path), slug)
@@ -86,7 +82,7 @@ def main() -> None:
     combined = combined.sort_values(["Match_Date", "MatchURL", "Team", "Player"])
     combined = combined.reset_index(drop=True)
 
-    out = INTERIM_DIR / "pl_combined_player_matches.parquet"
+    out = COMBINED_PATH
     combined.to_parquet(out, index=False)
 
     print(f"\ncombined: {len(combined):,} rows, {combined.MatchURL.nunique():,} matches")

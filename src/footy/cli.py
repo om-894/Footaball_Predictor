@@ -14,19 +14,21 @@ from rich.table import Table
 
 from footy import features as feature_module
 from footy.config import (
+    COMBINED_PATH,
+    COMBINED_TARGETS,
     DEFAULT_LEAGUE,
-    FEATURES_DIR,
+    FEATURES_PATH,
     REPORTS_DIR,
+    SCRAPED_TARGETS,
     TARGETS,
     ensure_dirs,
+    scraped_path,
 )
 from footy.ingest import build_player_matches, load_player_matches
 from footy.pipeline import improvement_over_baseline, run_walk_forward, summarise
 
 app = typer.Typer(add_completion=False, help="Football player-prop forecasting.")
 console = Console()
-
-FEATURES_PATH = FEATURES_DIR / "player_features.parquet"
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -255,25 +257,29 @@ def predict_fixture(
     """Forecast an upcoming fixture that has not been played yet."""
     _setup_logging(verbose)
 
-    from footy.championship import CHAMPIONSHIP_TARGETS, load_championship_matches
-    from footy.config import INTERIM_DIR
     from footy.fixture import forecast_fixture
 
     choice = league.lower()
     if choice in {"championship", "efl", "eng-championship"}:
-        history = load_championship_matches()
-        targets = CHAMPIONSHIP_TARGETS
+        path = scraped_path("ENG-Championship")
+        if not path.exists():
+            raise typer.BadParameter(
+                f"{path} not found. Run scripts/scrape_fbref.py ENG-Championship <season> "
+                "then scripts/build_scraped.py ENG-Championship."
+            )
+        history = pd.read_parquet(path)
+        targets = SCRAPED_TARGETS
     elif choice == "combined":
         # Mirrored history plus the live current-season scrape. Narrower schema than the
         # mirror alone -- see scripts/combine_pl.py -- but it is the only source that
         # covers both deep history and current squads.
-        path = INTERIM_DIR / "pl_combined_player_matches.parquet"
+        path = COMBINED_PATH
         if not path.exists():
             raise typer.BadParameter(
                 f"{path} not found. Run scripts/combine_pl.py first."
             )
         history = pd.read_parquet(path)
-        targets = ("Sh", "SoT", "Fls", "Fld", "CrdY")
+        targets = COMBINED_TARGETS
     else:
         history = load_player_matches()
         targets = TARGETS

@@ -1,22 +1,7 @@
-"""Championship (EFL, English second tier) ingest.
+"""Builds the standard player-match table from a live FBref scrape.
 
-The Premier League path in :mod:`footy.ingest` reads seven FBref tables from published
-mirrors. Neither applies here:
-
-* The `worldfootballR_data` mirrors publish only two Championship files (match events and
-  shot events), and both stopped updating in January 2025.
-* FBref serves the second tier a **narrower** match table than the top flight -- there is
-  no `misc`, `possession`, `passing` or `defense` tab, and the summary it does serve
-  carries no xG, touches, passes or carries.
-
-What the summary *does* carry is `Fls` and `Fld`. Worth stating plainly, because the v1
-scripts typed those two columns in by hand for all 17 Sunderland matches: the fouls were
-available from FBref the whole time.
-
-So this module takes a live scrape from scripts/scrape_fbref.py and emits the same shape
-as ``ingest.build_player_matches``, letting the feature pipeline, models and evaluation
-run unchanged. The feature set is thinner, and :func:`footy.features.build_features`
-degrades gracefully because it intersects ``FORM_STATS`` with the columns present.
+A live scrape only gets FBref's match summary table, so the result is narrower than the
+mirror: no xG, touches or passes, and tackles won instead of total tackles.
 """
 
 from __future__ import annotations
@@ -26,17 +11,10 @@ import logging
 import numpy as np
 import pandas as pd
 
-from footy.config import INTERIM_DIR, ensure_dirs
+from footy.config import SCRAPED_TARGETS
 from footy.ingest import parse_age, split_positions, validate_player_matches
 
 log = logging.getLogger(__name__)
-
-#: Written by scripts/build_scraped.py, whose output name follows the raw-data slug.
-CHAMPIONSHIP_PATH = INTERIM_DIR / "champ_player_matches.parquet"
-
-#: Targets the second-tier data can support. `Tkl` is absent -- FBref publishes only
-#: tackles *won* here -- so `TklW` stands in for it, and total tackles are unavailable.
-CHAMPIONSHIP_TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY", "TklW")
 
 #: soccerdata flattens FBref's two-row header to `Group_Stat`.
 COLUMN_MAP = {
@@ -139,23 +117,18 @@ def resolve_home_away(frame: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-def build_championship_matches(
+def build_scraped_matches(
     player_stats: pd.DataFrame,
     schedule: pd.DataFrame,
     *,
     competition: str = "Championship",
-    write: bool = True,
 ) -> pd.DataFrame:
-    """Turn a live scrape of FBref's narrow summary table into the standard player-match
-    table. Named for the Championship, where it was first needed, but any league that
-    FBref serves the same narrow schema for -- the Eredivisie, for one -- goes through
-    here too. ``competition`` is a label only; nothing downstream models on it."""
-    ensure_dirs()
+    """Turn a scraped summary table and its schedule into the standard player-match table."""
     frame = player_stats.rename(columns={**IDENTITY_MAP, **COLUMN_MAP}).copy()
 
     missing = sorted(set(COLUMN_MAP.values()) - set(frame.columns))
     if missing:
-        log.warning("Championship scrape is missing columns %s; filling with 0", missing)
+        log.warning("scrape is missing columns %s; filling with 0", missing)
         for column in missing:
             frame[column] = 0.0
 
@@ -204,18 +177,5 @@ def build_championship_matches(
     frame = frame.sort_values(["Match_Date", "MatchURL", "Team", "Player"])
     frame = frame.reset_index(drop=True)
 
-    validate_player_matches(frame, targets=CHAMPIONSHIP_TARGETS)
-
-    if write:
-        frame.to_parquet(CHAMPIONSHIP_PATH, index=False)
-        log.info("wrote %s (%d rows x %d cols)", CHAMPIONSHIP_PATH, *frame.shape)
-
+    validate_player_matches(frame, targets=SCRAPED_TARGETS)
     return frame
-
-
-def load_championship_matches() -> pd.DataFrame:
-    if not CHAMPIONSHIP_PATH.exists():
-        raise FileNotFoundError(
-            f"{CHAMPIONSHIP_PATH} not found. Scrape it first with the live FBref path."
-        )
-    return pd.read_parquet(CHAMPIONSHIP_PATH)

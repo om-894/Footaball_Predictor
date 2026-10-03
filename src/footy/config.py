@@ -14,6 +14,24 @@ INTERIM_DIR = DATA_DIR / "interim"  # tidied parquet, one row per player-match
 FEATURES_DIR = DATA_DIR / "features"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
+# tables shared between the cli and the scripts
+PLAYER_MATCHES_PATH = INTERIM_DIR / "player_matches.parquet" # mirror history, made by `footy fetch`
+COMBINED_PATH = INTERIM_DIR / "pl_combined_player_matches.parquet" # mirror plus live scrapes
+FEATURES_PATH = FEATURES_DIR / "player_features.parquet" # made by `footy build`
+
+
+def scraped_path(slug: str) -> Path:
+    """Player-match table built from a live scrape, e.g. scraped_path("ENG-Championship")."""
+    return INTERIM_DIR / f"{slug}_player_matches.parquet"
+
+
+# leagues scraped live, keyed by their folder under data/raw, with the label used in the tables
+SCRAPED_LEAGUES = {
+    "ENG-Premier-League": "Premier League",
+    "ENG-Championship": "Championship",
+    "NED-Eredivisie": "Eredivisie",
+}
+
 # --------------------------------------------------------------------------------------
 # Source 1: FBref per-match player tables, republished as plain CSVs by worldfootballR.
 #
@@ -59,6 +77,12 @@ FOOTBALL_DATA_LEAGUE_DIRS = {
 
 #: Counts we forecast. All are non-negative integers and all scale with minutes played.
 TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY", "Tkl")
+
+# a live scrape only gets the summary table, which has tackles won (TklW) but not total tackles
+SCRAPED_TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY", "TklW")
+
+# the combined table keeps the targets both sources have
+COMBINED_TARGETS = tuple(t for t in TARGETS if t in SCRAPED_TARGETS)
 
 #: Half-lives (in appearances) for the exponentially weighted form features.
 EWMA_HALFLIVES = (3, 6, 12)

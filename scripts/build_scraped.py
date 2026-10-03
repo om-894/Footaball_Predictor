@@ -7,18 +7,17 @@ import glob
 import logging
 import sys
 import warnings
-from pathlib import Path
 
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 import pandas as pd
 
-from footy.championship import build_championship_matches
-from footy.config import INTERIM_DIR
+from footy.config import RAW_DIR, SCRAPED_LEAGUES, ensure_dirs, scraped_path
+from footy.scraped import build_scraped_matches
 
 slug = sys.argv[1]
-raw = Path(__file__).resolve().parents[1] / "data" / "raw" / slug
+raw = RAW_DIR / slug
 
 stats = sorted(glob.glob(f"{raw}/player_summary_*.csv"))
 schedules = sorted(glob.glob(f"{raw}/schedule_*.csv"))
@@ -34,9 +33,10 @@ schedule = pd.concat([pd.read_csv(f) for f in schedules], ignore_index=True)
 print(f"loaded {len(players):,} player rows from {len(stats)} season file(s)")
 print("columns:", sorted(players.columns.tolist()))
 
-label = {"champ": "Championship", "NED-Eredivisie": "Eredivisie"}.get(slug, "Premier League")
-frame = build_championship_matches(players, schedule, competition=label, write=False)
-out = INTERIM_DIR / f"{slug}_player_matches.parquet"
+label = SCRAPED_LEAGUES.get(slug, slug)
+frame = build_scraped_matches(players, schedule, competition=label)
+out = scraped_path(slug)
+ensure_dirs()
 frame.to_parquet(out, index=False)
 
 print(f"\nplayer-matches: {len(frame):,}  matches: {frame.MatchURL.nunique()}")

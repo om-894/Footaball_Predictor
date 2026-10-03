@@ -188,7 +188,7 @@ whistle, and the name appears in no FBref table we load.
 
 ### The Championship
 
-The second tier is a separate path ([`championship.py`](src/footy/championship.py)),
+The second tier is a separate path ([`scraped.py`](src/footy/scraped.py)),
 because neither mirror serves it usefully: the `worldfootballR_data` releases publish only
 match events and shot events for `ENG_M_2nd`, and both stopped updating in January 2025.
 Live scraping is the only option.
@@ -383,7 +383,7 @@ src/footy/
   config.py          paths, league codes, targets, constants
   sources/           base.py (cached HTTP), worldfootballr.py, footballdata.py
   ingest.py          raw CSV -> validated player-match Parquet
-  championship.py    second-tier ingest, live-scraped, narrower schema
+  scraped.py         live-scraped tables (Championship, Eredivisie), narrower schema
   features.py        causal feature construction
   fixture.py         forecasting a match that has not been played
   datasets.py        walk-forward splitters

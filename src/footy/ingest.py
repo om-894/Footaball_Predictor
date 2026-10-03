@@ -12,13 +12,11 @@ import re
 import numpy as np
 import pandas as pd
 
-from footy.config import INTERIM_DIR, TARGETS, ensure_dirs
+from footy.config import PLAYER_MATCHES_PATH, TARGETS, ensure_dirs
 from footy.sources import footballdata, worldfootballr
 from footy.sources.base import CachedDownloader
 
 log = logging.getLogger(__name__)
-
-PLAYER_MATCHES_PATH = INTERIM_DIR / "player_matches.parquet"
 
 #: Columns that identify rather than measure. Never treated as numeric features.
 ID_COLUMNS = [

@@ -1,10 +1,11 @@
-"""Second-tier ingest, and the club-name mismatch that silently broke home/away."""
+"""Building player-match tables from a live scrape, including the club-name mismatch."""
 
 from __future__ import annotations
 
 import pandas as pd
 
-from footy.championship import CHAMPIONSHIP_TARGETS, build_championship_matches, resolve_home_away
+from footy.config import SCRAPED_TARGETS
+from footy.scraped import build_scraped_matches, resolve_home_away
 
 
 def _frame(pairs: list[tuple[str, str, str, str]]) -> pd.DataFrame:
@@ -65,11 +66,11 @@ def test_opponent_uses_player_table_spelling() -> None:
     assert (frame["Opponent"] != frame["Team"]).all()
 
 
-def test_championship_targets_exclude_total_tackles() -> None:
+def test_scraped_targets_exclude_total_tackles() -> None:
     """FBref publishes tackles *won* but not total tackles for the second tier."""
-    assert "Tkl" not in CHAMPIONSHIP_TARGETS
-    assert "TklW" in CHAMPIONSHIP_TARGETS
-    assert {"Fls", "Fld"} <= set(CHAMPIONSHIP_TARGETS)
+    assert "Tkl" not in SCRAPED_TARGETS
+    assert "TklW" in SCRAPED_TARGETS
+    assert {"Fls", "Fld"} <= set(SCRAPED_TARGETS)
 
 
 def test_build_produces_the_standard_shape() -> None:
@@ -98,11 +99,11 @@ def test_build_produces_the_standard_shape() -> None:
         "referee": ["A Taylor"],
     })
 
-    frame = build_championship_matches(players, schedule, write=False)
+    frame = build_scraped_matches(players, schedule)
 
     assert len(frame) == 4
     assert frame["Season_End_Year"].eq(2027).all()
     assert set(frame.loc[frame["is_home"] == 1, "Team"]) == {"QPR Full"}
     assert frame["Age"].between(25, 26).all()
-    for target in CHAMPIONSHIP_TARGETS:
+    for target in SCRAPED_TARGETS:
         assert target in frame.columns

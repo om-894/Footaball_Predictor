@@ -13,16 +13,17 @@ Usage:  python scripts/scrape_fbref.py ENG-Championship 2627 2526
 import sys
 import time
 import warnings
-from pathlib import Path
 
 warnings.filterwarnings("ignore")
 
 import pandas as pd
 import soccerdata as sd
 
+from footy.config import RAW_DIR
+
 LEAGUE = sys.argv[1]
 SLUG = LEAGUE.replace(" ", "-").replace("/", "-")
-OUT = Path(__file__).resolve().parents[1] / "data" / "raw" / SLUG
+OUT = RAW_DIR / SLUG
 OUT.mkdir(parents=True, exist_ok=True)
 CHUNK = 25
 
