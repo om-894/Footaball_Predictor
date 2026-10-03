@@ -59,7 +59,7 @@ def make_player_matches(
                     }
                     row["positions"] = [row["Pos"]]
                     row["is_gk"] = int(row["Pos"] == "GK")
-                    for stat in set(FORM_STATS) | set(TARGETS):
+                    for stat in sorted(set(FORM_STATS) | set(TARGETS)):
                         row[stat] = float(rng.poisson(1.0))
                     rows.append(row)
 

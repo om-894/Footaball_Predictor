@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from footy.fixture import build_fixture_rows, candidate_squad, forecast_fixture
+from footy.fixture import build_fixture_rows, candidate_squad, forecast_fixture, match_lineup
 from tests.conftest import TEAMS, make_player_matches
 
 TARGETS = ("Fls", "Fld", "Sh")
@@ -89,8 +89,6 @@ def test_forecast_ignores_matches_after_kickoff(history) -> None:
 
 def test_lineup_restricts_and_fixes_minutes(history, kickoff) -> None:
     """Naming the starters must replace the minutes model, not merely filter rows."""
-    from footy.fixture import forecast_fixture
-
     squad = candidate_squad(history, TEAMS[0], kickoff)["Player"].tolist()[:4]
     out = forecast_fixture(
         history, TEAMS[0], TEAMS[1], kickoff, TARGETS,
@@ -104,8 +102,6 @@ def test_lineup_restricts_and_fixes_minutes(history, kickoff) -> None:
 
 def test_lineup_matching_is_case_and_accent_insensitive(history, kickoff) -> None:
     """Team sheets rarely carry FBref's exact spelling."""
-    from footy.fixture import match_lineup
-
     candidates = build_fixture_rows(history, TEAMS[0], TEAMS[1], kickoff)
     full = candidates["Player"].iloc[0]
     matched = match_lineup(candidates, [full.upper()])
@@ -119,8 +115,6 @@ def test_lineup_matching_is_case_and_accent_insensitive(history, kickoff) -> Non
 
 def test_lineup_matching_handles_letters_without_accents(history, kickoff) -> None:
     """ø, đ and ł have no accent to strip, so they are swapped for plain letters."""
-    from footy.fixture import match_lineup
-
     candidates = build_fixture_rows(history, TEAMS[0], TEAMS[1], kickoff)
     renamed = candidates.copy()
     renamed.loc[renamed.index[0], "Player"] = "Martin Ødegaard"
@@ -129,8 +123,6 @@ def test_lineup_matching_handles_letters_without_accents(history, kickoff) -> No
 
 def test_ambiguous_surname_is_not_guessed(history, kickoff) -> None:
     """Two players sharing a surname must not be silently resolved to one of them."""
-    from footy.fixture import match_lineup
-
     candidates = build_fixture_rows(history, TEAMS[0], TEAMS[1], kickoff)
     shared = candidates.copy()
     shared.loc[shared.index[0], "Player"] = "Gary Neville"
@@ -141,8 +133,6 @@ def test_ambiguous_surname_is_not_guessed(history, kickoff) -> None:
 
 
 def test_unmatched_lineup_names_do_not_pass_silently(history, kickoff) -> None:
-    from footy.fixture import match_lineup
-
     candidates = build_fixture_rows(history, TEAMS[0], TEAMS[1], kickoff)
     with pytest.raises(ValueError, match="none of the supplied lineup names"):
         match_lineup(candidates, ["Nobody At All", "Also Nobody"])
@@ -150,8 +140,6 @@ def test_unmatched_lineup_names_do_not_pass_silently(history, kickoff) -> None:
 
 def test_lineup_for_one_team_leaves_the_other_intact(history, kickoff) -> None:
     """Team news lands one side at a time; the other must not disappear."""
-    from footy.fixture import forecast_fixture
-
     home_xi = candidate_squad(history, TEAMS[0], kickoff)["Player"].tolist()[:4]
     out = forecast_fixture(
         history, TEAMS[0], TEAMS[1], kickoff, TARGETS,

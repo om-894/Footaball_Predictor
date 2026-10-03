@@ -125,7 +125,6 @@ def test_column_maps_do_not_collide() -> None:
 
 def test_validation_rejects_duplicate_player_matches() -> None:
     frame = make_player_matches(n_matchdays=4)
-    frame["Home_Team"] = frame["Home_Team"]
     duplicated = pd.concat([frame, frame.head(1)], ignore_index=True)
     with pytest.raises(ValueError, match="duplicate"):
         validate_player_matches(duplicated)

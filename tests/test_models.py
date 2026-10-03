@@ -8,7 +8,8 @@ import pytest
 
 from footy import features as feature_module
 from footy.models.baselines import GlobalMean, PlayerEWMA, PositionMean, ShrunkCareerRate
-from footy.models.glm import PoissonGLM
+from footy.models.base import clean_matrix
+from footy.models.glm import NegativeBinomialGLM, PoissonGLM
 from footy.models.minutes import MinutesModel
 from tests.conftest import make_player_matches
 
@@ -79,30 +80,23 @@ def test_baseline_emits_a_real_distribution(matrix) -> None:
 
 
 def test_glm_scaler_is_fitted_on_training_data_only(built: pd.DataFrame) -> None:
-    """The v1 leak, caught.
-
-    A scaler fitted on train+test shifts when the test half changes. Here, refitting on
-    the same training rows must give identical predictions no matter what the unseen rows
-    look like.
-    """
+    """The scaler comes from the training rows, and predicting on other rows never changes it."""
     columns = feature_module.feature_columns(built)
     split = len(built) // 2
-    train, test = built.iloc[:split], built.iloc[split:].copy()
+    train, test = built.iloc[:split], built.iloc[split:]
 
     model = PoissonGLM(max_features=15).fit(
         train[columns], train["Fls"].to_numpy(float), train["Min"].to_numpy(float)
     )
-    baseline = model.predict(test[columns], test["Min"].to_numpy(float))
+    matrix, _ = clean_matrix(train[columns], model.selected_)
+    pd.testing.assert_series_equal(model.mean_, matrix.mean())
 
-    # Wildly perturb the held-out features; the fitted scaler must not move.
-    perturbed = test.copy()
-    perturbed[columns] = perturbed[columns] * 100.0
-    refit = PoissonGLM(max_features=15).fit(
-        train[columns], train["Fls"].to_numpy(float), train["Min"].to_numpy(float)
-    )
-    unchanged = refit.predict(test[columns], test["Min"].to_numpy(float))
-
-    np.testing.assert_allclose(baseline, unchanged, rtol=1e-9)
+    minutes = test["Min"].to_numpy(float)
+    before = model.predict(test[columns], minutes)
+    model.predict(test[columns] * 100.0, minutes) # wildly different rows
+    after = model.predict(test[columns], minutes)
+    np.testing.assert_allclose(before, after, rtol=1e-12)
+    pd.testing.assert_series_equal(model.mean_, matrix.mean())
 
 
 def test_minutes_model_respects_bounds(built: pd.DataFrame) -> None:
@@ -132,8 +126,6 @@ def test_glm_rate_is_capped_at_a_plausible_value(matrix) -> None:
     mean near 1.0 -- a blown fit whose log-score still looked ordinary, so only the MAE
     column gave it away.
     """
-    from footy.models.glm import NegativeBinomialGLM
-
     X, y, minutes = matrix
     model = NegativeBinomialGLM(max_features=20).fit(X, y, minutes)
     rates = model._predict_rate(X)
