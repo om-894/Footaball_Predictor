@@ -40,7 +40,9 @@ from footy.config import (
 from footy.datasets import season_folds, testable_seasons
 from footy.ingest import build_player_matches, load_player_matches, name_key
 
-app = typer.Typer(add_completion=False, help="Forecast per-match football player stats from FBref data.")
+app = typer.Typer(
+    add_completion=False, help="Forecast per-match football player stats from FBref data."
+)
 console = Console()
 
 
@@ -61,7 +63,8 @@ HISTORY = {
     League.championship: (
         scraped_path("ENG-Championship"),
         SCRAPED_TARGETS,
-        "scripts/scrape_fbref.py ENG-Championship <season> then scripts/build_scraped.py ENG-Championship",
+        "scripts/scrape_fbref.py ENG-Championship <season> then "
+        "scripts/build_scraped.py ENG-Championship",
     ),
     League.combined: (COMBINED_PATH, COMBINED_TARGETS, "scripts/combine_pl.py"),
 }
@@ -127,7 +130,10 @@ def _check_team(history: pd.DataFrame, team: str) -> None:
     teams = sorted(history["Team"].dropna().unique())
     if team not in teams:
         close = get_close_matches(team, teams, n=3, cutoff=0.5)
-        hint = f" Did you mean: {', '.join(close)}?" if close else " Names follow FBref's player tables."
+        if close:
+            hint = f" Did you mean: {', '.join(close)}?"
+        else:
+            hint = " Names follow FBref's player tables."
         _fail(f"no team called {team!r} in this history.{hint}")
 
 
@@ -137,7 +143,10 @@ def _check_referee(history: pd.DataFrame, referee: str) -> None:
     if referee not in referees:
         close = get_close_matches(referee, referees, n=3, cutoff=0.5)
         hint = f" Did you mean: {', '.join(close)}?" if close else ""
-        console.print(f"[yellow]warning:[/] no earlier matches for referee {referee!r}, so the referee features will be blank.{hint}")
+        console.print(
+            f"[yellow]warning:[/] no earlier matches for referee {referee!r}, "
+            f"so the referee features will be blank.{hint}"
+        )
 
 
 def _find_player(frame: pd.DataFrame, player: str) -> list[str]:
@@ -155,8 +164,12 @@ def _find_player(frame: pd.DataFrame, player: str) -> list[str]:
 def _print_player_forecast(played: pd.DataFrame, exposure: np.ndarray, distributions: dict) -> None:
     """One table per match: expected count, P(at least 1), P(at least 2) and what happened."""
     for position, (_, row) in enumerate(played.iterrows()):
-        console.rule(f"{row['Player']}, {row['Team']} v {row.get('Opponent', '?')} ({row['Match_Date'].date()})")
-        console.print(f"expected minutes: [bold]{exposure[position]:.0f}[/] (actually played {row['Min']:.0f})")
+        opponent = row.get("Opponent", "?")
+        console.rule(f"{row['Player']}, {row['Team']} v {opponent} ({row['Match_Date'].date()})")
+        console.print(
+            f"expected minutes: [bold]{exposure[position]:.0f}[/] "
+            f"(actually played {row['Min']:.0f})"
+        )
 
         table = Table(header_style="bold")
         table.add_column("target")
@@ -196,7 +209,9 @@ def _print_fixture_table(side: pd.DataFrame, title: str, targets: tuple[str, ...
 
 @app.command()
 def fetch(
-    league: str = typer.Option(DEFAULT_LEAGUE, help=f"League to download, one of: {', '.join(LEAGUES)}."),
+    league: str = typer.Option(
+        DEFAULT_LEAGUE, help=f"League to download, one of: {', '.join(LEAGUES)}."
+    ),
     force: bool = typer.Option(False, help="Download again even if the cached copy is current."),
     verbose: bool = typer.Option(True, "--verbose/--quiet", help="Show progress logs."),
 ) -> None:
@@ -217,7 +232,9 @@ def fetch(
 
 
 @app.command()
-def build(verbose: bool = typer.Option(True, "--verbose/--quiet", help="Show progress logs.")) -> None:
+def build(
+    verbose: bool = typer.Option(True, "--verbose/--quiet", help="Show progress logs."),
+) -> None:
     """Build the feature table from the player-match table."""
     _setup_logging(verbose)
     if not PLAYER_MATCHES_PATH.exists():
@@ -228,14 +245,21 @@ def build(verbose: bool = typer.Option(True, "--verbose/--quiet", help="Show pro
     frame.to_parquet(FEATURES_PATH, index=False)
 
     columns = feature_module.feature_columns(frame)
-    console.print(f"[bold green]{len(frame):,}[/] rows | {len(columns)} model features | saved to {FEATURES_PATH}")
+    console.print(
+        f"[bold green]{len(frame):,}[/] rows | {len(columns)} model features | "
+        f"saved to {FEATURES_PATH}"
+    )
 
 
 @app.command()
 def evaluate(
-    target: list[str] = typer.Option(None, help=f"Target to score, can be repeated. Default: {' '.join(TARGETS)}."),
+    target: list[str] = typer.Option(
+        None, help=f"Target to score, can be repeated. Default: {' '.join(TARGETS)}."
+    ),
     test_season: list[int] = typer.Option(
-        None, help="Season to hold out as its end year (2024 means 2023/24), can be repeated. Default: all."
+        None,
+        help="Season to hold out as its end year (2024 means 2023/24), can be repeated. "
+        "Default: all.",
     ),
     mode: Mode = typer.Option(
         Mode.forecast, case_sensitive=False,
@@ -262,7 +286,9 @@ def evaluate(
     ensure_dirs()
     targets = tuple(target) if target else TARGETS
     seasons = tuple(test_season) if test_season else None
-    scores, predictions = run_walk_forward(frame, targets=targets, test_seasons=seasons, include_nn=not skip_nn)
+    scores, predictions = run_walk_forward(
+        frame, targets=targets, test_seasons=seasons, include_nn=not skip_nn
+    )
     scores.to_csv(REPORTS_DIR / "fold_scores.csv", index=False)
     predictions.to_parquet(REPORTS_DIR / "predictions.parquet", index=False)
 
@@ -280,20 +306,32 @@ def evaluate(
     delta = improvement_over_baseline(summary)
     console.print(delta.to_string())
 
-    beaten = [name for name in targets if delta.loc[name].drop(BENCHMARK, errors="ignore").max() > 0]
+    beaten = [
+        name for name in targets
+        if delta.loc[name].drop(BENCHMARK, errors="ignore").max() > 0
+    ]
     if beaten:
         console.print(f"\n[green]Beat the benchmark on:[/] {', '.join(beaten)}")
     losing = [name for name in targets if name not in beaten]
     if losing:
-        console.print(f"[yellow]Nothing beat the player's own recent average on:[/] {', '.join(losing)}")
-    console.print(f"\nfold_scores.csv, predictions.parquet and summary_{mode.value}.csv saved to {REPORTS_DIR}")
+        console.print(
+            f"[yellow]Nothing beat the player's own recent average on:[/] {', '.join(losing)}"
+        )
+    console.print(
+        f"\nfold_scores.csv, predictions.parquet and summary_{mode.value}.csv "
+        f"saved to {REPORTS_DIR}"
+    )
 
 
 @app.command()
 def predict(
-    player: str = typer.Option(..., help="Player name as FBref spells it. Case and accents are ignored."),
+    player: str = typer.Option(
+        ..., help="Player name as FBref spells it. Case and accents are ignored."
+    ),
     last: int = typer.Option(1, help="How many of the player's latest matches to show."),
-    minutes: float = typer.Option(None, help="Assume this many minutes instead of the predicted minutes."),
+    minutes: float = typer.Option(
+        None, help="Assume this many minutes instead of the predicted minutes."
+    ),
     verbose: bool = typer.Option(False, "--verbose/--quiet", help="Show progress logs."),
 ) -> None:
     """Re-score a player's latest matches using the network trained on every earlier season."""
@@ -310,7 +348,9 @@ def predict(
     # torch is slow to import, so the pipeline is only loaded by the commands that train
     from footy.pipeline import run_fold
 
-    console.print(f"training on everything before season {latest_season}, this takes a few minutes...")
+    console.print(
+        f"training on everything before season {latest_season}, this takes a few minutes..."
+    )
     result = run_fold(frame, folds[0], targets=TARGETS, include_nn=True)
 
     played = result.predictions[result.predictions["Player"].isin(names)]
@@ -326,7 +366,9 @@ def predict(
         exposure = played["pred_minutes"].to_numpy(dtype=float)
 
     distributions = {
-        name: result.network.predict_distribution(rows[result.feature_columns], exposure, rows["Player"], name)
+        name: result.network.predict_distribution(
+            rows[result.feature_columns], exposure, rows["Player"], name
+        )
         for name in TARGETS
     }
     _print_player_forecast(played, exposure, distributions)
@@ -337,12 +379,16 @@ def predict_fixture(
     home: str = typer.Option(..., help="Home team as FBref spells it, e.g. 'Queens Park Rangers'."),
     away: str = typer.Option(..., help="Away team as FBref spells it."),
     date: str = typer.Option(..., help="Kick-off date, YYYY-MM-DD."),
-    league: League = typer.Option(League.championship, case_sensitive=False, help="Which history table to use."),
+    league: League = typer.Option(
+        League.championship, case_sensitive=False, help="Which history table to use."
+    ),
     referee: str = typer.Option(None, help="Referee, if the appointment is known."),
     lineup: str = typer.Option(
         None, help="Confirmed starters, comma-separated or a file with one name per line."
     ),
-    lineup_minutes: float = typer.Option(FULL_MATCH_MINUTES, help="Minutes to assume for each named starter."),
+    lineup_minutes: float = typer.Option(
+        FULL_MATCH_MINUTES, help="Minutes to assume for each named starter."
+    ),
     top: int = typer.Option(14, help="Players per side to show."),
     verbose: bool = typer.Option(False, "--verbose/--quiet", help="Show progress logs."),
 ) -> None:
@@ -385,13 +431,14 @@ def predict_fixture(
     if names:
         console.print(
             f"\n[green]Conditioned on the confirmed lineup[/] ({int(result['is_named'].sum())} of "
-            f"{len(names)} names matched) at {lineup_minutes:.0f} minutes each. Substitutions will still move these."
+            f"{len(names)} names matched) at {lineup_minutes:.0f} minutes each. "
+            "Substitutions will still move these."
         )
     else:
         console.print(
-            "\n[yellow]Caveats:[/] the lineup is not known, so this is everyone who has played recently "
-            "rather than a predicted XI. Expected minutes are off by about 19 minutes on average, which "
-            "carries into every count above."
+            "\n[yellow]Caveats:[/] the lineup is not known, so this is everyone who has played "
+            "recently rather than a predicted XI. Expected minutes are off by about 19 minutes "
+            "on average, which carries into every count above."
         )
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -413,7 +460,8 @@ def info() -> None:
         table.add_column(column, justify="right" if column == "rows" else "left")
     for path in tables:
         dates = pd.to_datetime(pd.read_parquet(path, columns=["Match_Date"])["Match_Date"])
-        table.add_row(path.name, f"{len(dates):,}", str(dates.min().date()), str(dates.max().date()))
+        first, last = str(dates.min().date()), str(dates.max().date())
+        table.add_row(path.name, f"{len(dates):,}", first, last)
     console.print(table)
 
     for league, (path, _, how) in HISTORY.items():
