@@ -143,9 +143,13 @@ def build_championship_matches(
     player_stats: pd.DataFrame,
     schedule: pd.DataFrame,
     *,
+    competition: str = "Championship",
     write: bool = True,
 ) -> pd.DataFrame:
-    """Turn a live Championship scrape into the standard player-match table."""
+    """Turn a live scrape of FBref's narrow summary table into the standard player-match
+    table. Named for the Championship, where it was first needed, but any league that
+    FBref serves the same narrow schema for -- the Eredivisie, for one -- goes through
+    here too. ``competition`` is a label only; nothing downstream models on it."""
     ensure_dirs()
     frame = player_stats.rename(columns={**IDENTITY_MAP, **COLUMN_MAP}).copy()
 
@@ -184,7 +188,7 @@ def build_championship_matches(
     frame["Season_End_Year"] = (
         pd.to_numeric(frame["Season"].astype(str).str[:2], errors="coerce") + 2001
     )
-    frame["Competition_Name"] = "Championship"
+    frame["Competition_Name"] = competition
 
     # -- derived identity ---------------------------------------------------------
     frame = resolve_home_away(frame)

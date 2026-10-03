@@ -9,6 +9,7 @@ mirror's own schema -- FBref's match summary has no xG, touches or passes -- so 
 of current data is a thinner feature set. Stated here rather than discovered later.
 """
 
+import sys
 import warnings
 from pathlib import Path
 
@@ -44,17 +45,28 @@ def _align(frame: pd.DataFrame, source: str) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Usage: combine_pl.py [extra-slug ...]
+
+    Always joins the mirror with the Premier League scrape. Extra slugs -- e.g.
+    ``NED-Eredivisie`` for a European opponent -- are appended too. Cross-league rows
+    give a foreign side's players real history and give the opponent-form features
+    something to work from; the caveat is that refereeing norms differ by league and
+    there is no league indicator feature, so treat foreign-side legs with more suspicion.
+    """
     mirror_path = INTERIM_DIR / "player_matches.parquet"
-    live_path = INTERIM_DIR / "ENG-Premier-League_player_matches.parquet"
-    if not live_path.exists():
-        raise SystemExit(f"{live_path} missing -- run scripts/build_scraped.py first")
+    slugs = ["ENG-Premier-League", *sys.argv[1:]]
 
-    mirror = _align(pd.read_parquet(mirror_path), "mirror")
-    live = _align(pd.read_parquet(live_path), "live")
-    print(f"mirror: {len(mirror):,} rows to {mirror.Match_Date.max().date()}")
-    print(f"live:   {len(live):,} rows to {live.Match_Date.max().date()}")
+    frames = [_align(pd.read_parquet(mirror_path), "mirror")]
+    print(f"mirror: {len(frames[0]):,} rows to {frames[0].Match_Date.max().date()}")
+    for slug in slugs:
+        path = INTERIM_DIR / f"{slug}_player_matches.parquet"
+        if not path.exists():
+            raise SystemExit(f"{path} missing -- run scripts/build_scraped.py {slug} first")
+        live = _align(pd.read_parquet(path), slug)
+        print(f"{slug}: {len(live):,} rows to {live.Match_Date.max().date()}")
+        frames.append(live)
 
-    combined = pd.concat([mirror, live], ignore_index=True)
+    combined = pd.concat(frames, ignore_index=True)
     # The live scrape may re-cover matches the mirror already had; keep the live copy.
     before = len(combined)
     combined = combined.drop_duplicates(subset=["MatchURL", "Team", "Player"], keep="last")
@@ -73,7 +85,7 @@ def main() -> None:
     print(combined.groupby("Season_End_Year").agg(
         rows=("Player", "size"), matches=("MatchURL", "nunique")).tail(6).to_string())
 
-    for team in ("Sunderland", "Hull City"):
+    for team in ("Sunderland", "Hull City", "AZ Alkmaar"):
         sub = combined[combined.Team == team]
         recent = sub[sub.Match_Date >= "2026-08-01"]
         print(f"\n{team}: {len(sub):,} rows total, {len(recent)} since Aug 2026, "

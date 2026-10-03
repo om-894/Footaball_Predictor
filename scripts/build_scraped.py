@@ -34,7 +34,8 @@ schedule = pd.concat([pd.read_csv(f) for f in schedules], ignore_index=True)
 print(f"loaded {len(players):,} player rows from {len(stats)} season file(s)")
 print("columns:", sorted(players.columns.tolist()))
 
-frame = build_championship_matches(players, schedule, write=False)
+label = {"champ": "Championship", "NED-Eredivisie": "Eredivisie"}.get(slug, "Premier League")
+frame = build_championship_matches(players, schedule, competition=label, write=False)
 out = INTERIM_DIR / f"{slug}_player_matches.parquet"
 frame.to_parquet(out, index=False)
 
@@ -44,7 +45,7 @@ print(frame.groupby("Season_End_Year").agg(
 print(f"date range: {frame.Match_Date.min().date()} -> {frame.Match_Date.max().date()}")
 print(f"home/away balance: {frame.is_home.mean():.2f} (want ~0.50)")
 
-for team in ("Sunderland", "Hull City"):
+for team in ("Sunderland", "Hull City", "AZ Alkmaar"):
     sub = frame[frame.Team == team]
     if len(sub):
         print(f"\n{team}: {len(sub)} rows, {sub.MatchURL.nunique()} matches, "
