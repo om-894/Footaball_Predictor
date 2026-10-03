@@ -1,19 +1,10 @@
-"""Forecast a fixture that has not been played yet.
+"""
+Forecasts a match that hasn't been played yet.
 
-Everything else in this package scores matches that already happened, where the row
-exists and only the target is hidden. A real upcoming fixture has no row at all, so we
-synthesise one per candidate player and let the causal feature pipeline fill it from that
-player's history. Because every feature is built from strictly earlier matches, a row with
-no result is not a special case -- it is just a row whose history happens to be all of it.
-
-Two honest caveats, both stated in the output rather than buried:
-
-* **We do not know the lineup.** The squad is taken to be everyone who has appeared for
-  the club recently; the minutes model then supplies expected minutes for each. A player
-  who is dropped or injured will still appear in the table with a plausible-looking
-  number. Team news resolves this about an hour before kickoff.
-* **Expected minutes carry real error** -- around 19 minutes MAE in Premier League
-  backtesting -- and that error flows into every count below it.
+An upcoming match has no rows in the data, so one row is made up per likely player and
+the normal feature pipeline fills it in from that player's earlier matches. The squad is
+everyone who has played for the club recently, so a dropped or injured player still
+appears until a confirmed lineup is passed in.
 """
 
 from __future__ import annotations
@@ -32,16 +23,14 @@ from footy.models.minutes import MinutesModel
 
 log = logging.getLogger(__name__)
 
-#: A player is considered available if they have played for the club within this many
-#: days. Wide enough to survive a rotation or a minor knock, tight enough to drop players
-#: who have left.
+# a player counts as available if they have played for the club within this many days
 SQUAD_WINDOW_DAYS = 75
 
 
 def candidate_squad(
     history: pd.DataFrame, team: str, as_of: pd.Timestamp, window_days: int = SQUAD_WINDOW_DAYS
 ) -> pd.DataFrame:
-    """Players who have appeared for ``team`` recently enough to be plausible starters."""
+    """Players who have played for `team` in the `window_days` before `as_of`, most minutes first."""
     recent = history[
         (history["Team"] == team)
         & (history["Match_Date"] < as_of)
@@ -80,7 +69,7 @@ def build_fixture_rows(
     referee: str | None = None,
     match_id: str = "UPCOMING",
 ) -> pd.DataFrame:
-    """One synthetic player-match row per candidate player for both sides."""
+    """One made-up player-match row per likely player on both sides."""
     rows = []
     for team, opponent, is_home in (
         (home_team, away_team, 1),
@@ -102,10 +91,7 @@ def build_fixture_rows(
                 "Nation": player["Nation"],
                 "Age": player["Age"],
                 "Referee": referee,
-                # Placeholder exposure. The row's own features come from shifted history,
-                # and `Min` is never a model feature -- it enters only as an offset, which
-                # the minutes model supplies. Nothing downstream reads this value.
-                "Min": FULL_MATCH_MINUTES,
+                "Min": FULL_MATCH_MINUTES, # placeholder, minutes are never a feature
             })
 
     frame = pd.DataFrame(rows)
@@ -118,11 +104,10 @@ def build_fixture_rows(
 
 
 def match_lineup(candidates: pd.DataFrame, lineup: list[str]) -> pd.DataFrame:
-    """Restrict candidates to a confirmed lineup, matching names loosely.
+    """Keep the named starters, matching names on case, accents and unambiguous surnames.
 
-    Team sheets are typed by hand and rarely carry FBref's exact spelling -- accents get
-    dropped, first names abbreviated. A surname match is enough to be unambiguous within
-    one squad, and anything unmatched is reported rather than silently ignored.
+    A team with no named players keeps all its candidates, since team news for the two
+    sides often comes out at different times. Names that match nobody are logged.
     """
     known = {name_key(p): p for p in candidates["Player"]}
     surnames: dict[str, list[str]] = {}
@@ -135,6 +120,7 @@ def match_lineup(candidates: pd.DataFrame, lineup: list[str]) -> pd.DataFrame:
         if k in known:
             resolved.append(known[k])
             continue
+        # a surname only counts if exactly one candidate has it
         matches = surnames.get(k.split()[-1] if k.split() else k, [])
         if len(matches) == 1:
             resolved.append(matches[0])
@@ -154,9 +140,6 @@ def match_lineup(candidates: pd.DataFrame, lineup: list[str]) -> pd.DataFrame:
     out = candidates.copy()
     out["is_named"] = out["Player"].isin(resolved)
 
-    # Team news for the two sides rarely lands together. Filter only the teams the lineup
-    # actually covers; a side with no named players keeps its full candidate list and its
-    # modelled minutes, rather than vanishing from the output.
     covered = set(out.loc[out["is_named"], "Team"])
     uncovered = sorted(set(out["Team"]) - covered)
     if uncovered:
@@ -177,15 +160,10 @@ def forecast_fixture(
     lineup_minutes: float | None = None,
     seed: int = 42,
 ) -> pd.DataFrame:
-    """Fit on everything before kickoff, then forecast every candidate player.
+    """Train on every match before kickoff, then forecast each likely player with PoissonGBM.
 
-    Uses ``PoissonGBM``, which won or tied for the win on most targets in the Premier
-    League backtest, and needs no validation fold to be useful.
-
-    Pass ``lineup`` once team news is out. That is worth far more than any modelling
-    change: the minutes model is the largest single error source in a forecast, and it is
-    at its worst for cup ties, where selection stops resembling league football. Naming
-    the starters replaces a prediction with a fact.
+    With a `lineup`, named starters get `lineup_minutes` instead of the minutes model's
+    guess. A team with no named players keeps its modelled minutes.
     """
     kickoff = pd.Timestamp(kickoff)
     history = history[history["Match_Date"] < kickoff].copy()
@@ -203,9 +181,8 @@ def forecast_fixture(
         home_team, away_team, kickoff.date(), len(fixture),
     )
 
-    # Targets are absent for an unplayed match; zero-fill so the shared feature pipeline
-    # runs. These values never reach a feature -- the causal shift excludes the row from
-    # its own history, and `feature_columns` bans same-match stats outright.
+    # the fixture rows have no results yet, so their targets are zero-filled. they never
+    # reach a feature, since features only use earlier rows
     combined = pd.concat([history, fixture], ignore_index=True)
     for target in targets:
         combined[target] = pd.to_numeric(combined[target], errors="coerce").fillna(0.0)
@@ -224,9 +201,6 @@ def forecast_fixture(
         minutes_model.predict(upcoming[columns]), 1.0, FULL_MATCH_MINUTES
     )
     if lineup_minutes is not None and "is_named" in upcoming.columns:
-        # A named starter is assumed to play the full match unless told otherwise. Blunt,
-        # but far closer to the truth than a league-trained minutes model applied to a
-        # rotated cup XI. Players on a side with no team news keep their modelled minutes.
         named = upcoming["is_named"].to_numpy(dtype=bool)
         expected_minutes = np.where(named, float(lineup_minutes), expected_minutes)
 

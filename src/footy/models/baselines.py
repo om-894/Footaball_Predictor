@@ -1,9 +1,7 @@
-"""The models the neural network has to beat.
+"""
+Simple baselines the other models have to beat.
 
-These exist to keep the project honest. A deep model that cannot outscore a player's own
-exponentially weighted average is not adding anything, and without these rows in the
-table there is no way to tell. The v1 project reported only its own training loss, so the
-question could not even be asked.
+PlayerEWMA, the player's own recent rate, is the benchmark in the results tables.
 """
 
 from __future__ import annotations
@@ -22,7 +20,7 @@ def _pooled_rate(y: np.ndarray, exposure: np.ndarray) -> float:
 
 
 class GlobalMean(CountModel):
-    """One rate for everyone. The floor: any model below this is broken."""
+    """The same per-90 rate for every player."""
 
     name = "GlobalMean"
 
@@ -34,7 +32,7 @@ class GlobalMean(CountModel):
 
 
 class PositionMean(CountModel):
-    """Per-90 rate by position group. Cheap, and surprisingly hard to beat for tackles."""
+    """One per-90 rate for each position group."""
 
     name = "PositionMean"
 
@@ -57,17 +55,9 @@ class PositionMean(CountModel):
 
 
 class PlayerEWMA(CountModel):
-    """The player's own exponentially weighted form rate.
+    """The player's recent rate (smoothed counts over smoothed minutes), times one fitted scale.
 
-    **This is the benchmark that matters.** It is roughly what an experienced analyst does
-    by eye -- "he's been getting two shots a game lately" -- and it uses a single
-    precomputed feature. Anything more elaborate has to justify itself against it.
-
-    Uses the exposure-weighted rate (smoothed counts over smoothed minutes) rather than a
-    smoothed per-90 rate. See ``NaivePer90EWMA`` for what the difference costs.
-
-    A single scale factor is fitted so the baseline is not penalised for a systematic
-    offset it could trivially correct.
+    This is the benchmark, roughly what an analyst would judge from recent form by eye.
     """
 
     name = "PlayerEWMA"
@@ -85,8 +75,7 @@ class PlayerEWMA(CountModel):
         if self.column not in X.columns:
             raise KeyError(f"{self.column} missing; build features before fitting")
         rates = X[self.column]
-        # A debutant has no EWMA; fall back to the shrunk career rate, which is defined
-        # for everyone because it borrows from the positional prior.
+        # a debutant has no recent form, so fall back to the shrunk career rate
         if self.fallback_column in X.columns:
             rates = rates.fillna(X[self.fallback_column])
         return rates.fillna(self.prior_).clip(lower=0.0).to_numpy()
@@ -102,12 +91,7 @@ class PlayerEWMA(CountModel):
 
 
 class NaivePer90EWMA(PlayerEWMA):
-    """``PlayerEWMA`` over smoothed per-90 rates instead of exposure-weighted ones.
-
-    Included specifically to price the v1 pipeline's central assumption. It is the same
-    model as ``PlayerEWMA`` in every other respect, so the gap between the two rows in the
-    results table is exactly the cost of averaging rates instead of weighting by minutes.
-    """
+    """PlayerEWMA on smoothed per-90 rates instead, to show what averaging rates costs."""
 
     name = "NaivePer90EWMA"
 
@@ -117,11 +101,7 @@ class NaivePer90EWMA(PlayerEWMA):
 
 
 class ShrunkCareerRate(CountModel):
-    """The empirical-Bayes career rate, used directly.
-
-    Complements ``PlayerEWMA``: it weights a whole career rather than recent form, so it
-    is steadier for fringe players and slower to react to a change in role.
-    """
+    """The player's career rate pulled towards their position's, times one fitted scale."""
 
     name = "ShrunkCareerRate"
 

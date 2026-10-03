@@ -1,18 +1,11 @@
-"""Stage one: how long will the player be on the pitch?
+"""
+Stage one: how many minutes a player will play.
 
-Every count we forecast scales with minutes, so getting this wrong contaminates
-everything downstream. Minutes are awkward to model: bounded to [1, 90], and strongly
-bimodal -- the median is 90 and the lower quartile 55, because players tend to either
-start and finish or come off the bench.
+Minutes pile up at 90 and at short substitute spells, so a model of the average would
+predict the empty middle. Instead several quantiles are predicted and averaged.
 
-A plain regression to the conditional mean lands in the empty middle of that
-distribution. Instead we predict a *distribution* over minutes with a quantile model, and
-let the count models integrate over it.
-
-Known limitation: the source data contains only players who actually appeared, so this
-model is conditional on selection. It cannot tell you whether a player will be picked --
-only how long they are likely to play if they are. soccerdata's ``read_lineup`` can
-supply lineups including unused substitutes, which would lift the restriction.
+The data only holds players who actually played, so this predicts minutes if picked,
+not whether a player will be picked.
 """
 
 from __future__ import annotations
@@ -23,12 +16,11 @@ from lightgbm import LGBMRegressor
 
 from footy.config import FULL_MATCH_MINUTES
 
-#: Quantiles used to represent the minutes distribution.
-QUANTILES = (0.1, 0.25, 0.5, 0.75, 0.9)
+QUANTILES = (0.1, 0.25, 0.5, 0.75, 0.9) # quantiles predicted to describe the minutes spread
 
 
 class MinutesModel:
-    """Quantile gradient boosting over minutes played, given selection."""
+    """Quantile LightGBM models of minutes played, given the player appears."""
 
     def __init__(self, quantiles: tuple[float, ...] = QUANTILES, seed: int = 42, **kwargs):
         self.quantiles = quantiles
@@ -55,24 +47,22 @@ class MinutesModel:
         return self
 
     def predict_quantiles(self, X: pd.DataFrame) -> pd.DataFrame:
-        """One column per quantile, each clipped to a legal number of minutes."""
+        """One column per quantile, each clipped to between 1 and 90 minutes."""
         predictions = {
             q: np.clip(model.predict(X[self.columns]), 1.0, FULL_MATCH_MINUTES)
             for q, model in self.models.items()
         }
         frame = pd.DataFrame(predictions, index=X.index)
-        # Quantile models are fitted independently and can cross; sorting each row
-        # restores monotonicity without materially changing the fit.
+        # the quantile models are fitted separately and can cross, so sort each row
         sorted_values = np.sort(frame.to_numpy(), axis=1)
         return pd.DataFrame(sorted_values, columns=list(self.quantiles), index=X.index)
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
-        """Expected minutes, as a trapezoidal average over the predicted quantiles."""
+        """Expected minutes, averaging the quantiles weighted by the probability each covers."""
         quantiles = self.predict_quantiles(X)
         levels = np.asarray(self.quantiles)
         values = quantiles.to_numpy()
 
-        # Weight each quantile by the probability mass it represents.
         edges = np.concatenate([[0.0], (levels[:-1] + levels[1:]) / 2, [1.0]])
         weights = np.diff(edges)
         return values @ weights

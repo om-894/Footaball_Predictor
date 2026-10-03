@@ -1,8 +1,7 @@
-"""Shared HTTP fetching: on-disk caching, conditional requests, retry with backoff.
+"""
+Downloads with a local cache, retries and a pause between requests.
 
-The v1 scripts hit the network on every run with ``requests.get(url, verify=False)`` and
-no caching, no retry and no rate limit. Disabling certificate verification also meant a
-man-in-the-middle could have supplied the training data. Everything here verifies TLS.
+A file is only downloaded again if the server says it has changed, using its ETag.
 """
 
 from __future__ import annotations
@@ -22,21 +21,19 @@ log = logging.getLogger(__name__)
 
 USER_AGENT = "footy/2.0 (+https://github.com/om-894/Footaball_Predictor)"
 
-#: Polite floor between requests to the same host.
-MIN_REQUEST_INTERVAL_S = 1.0
+MIN_REQUEST_INTERVAL_S = 1.0 # minimum seconds between requests to the same server
 
 
 class SourceError(RuntimeError):
-    """A source could not be fetched. Raised rather than returning partial data."""
+    """A source could not be downloaded or read."""
 
 
 @dataclass
 class CachedDownloader:
-    """Downloads to ``cache_dir``, reusing the local copy when the server says it is
-    still current.
+    """Downloads files to `cache_dir`, reusing the saved copy while the server says it is current.
 
-    Assets are large (the FBref misc table alone is 42MB), so we keep an ETag sidecar and
-    send ``If-None-Match``. A 304 means we skip the transfer entirely.
+    Each file's ETag is saved next to it in a .meta.json file and sent with the next
+    request, so an unchanged file comes back as a 304 with nothing to download.
     """
 
     cache_dir: Path = RAW_DIR
@@ -49,8 +46,6 @@ class CachedDownloader:
         self._session = requests.Session()
         self._session.headers.update({"User-Agent": USER_AGENT})
         self._last_request_at = 0.0
-
-    # -- internals ---------------------------------------------------------------
 
     def _throttle(self) -> None:
         elapsed = time.monotonic() - self._last_request_at
@@ -70,14 +65,8 @@ class CachedDownloader:
         except (json.JSONDecodeError, OSError):
             return {}
 
-    # -- public ------------------------------------------------------------------
-
     def fetch(self, url: str, filename: str | None = None, *, force: bool = False) -> Path:
-        """Return a local path holding the content of ``url``.
-
-        Uses the cached copy when the server reports it unchanged. ``force`` re-downloads
-        regardless.
-        """
+        """Local path to the contents of `url`, downloading only if it changed or `force` is set."""
         name = filename or url.rsplit("/", 1)[-1]
         target = self.cache_dir / name
         meta = {} if force else self._read_meta(target)
@@ -99,9 +88,7 @@ class CachedDownloader:
 
                     response.raise_for_status()
 
-                    # Write beside the target and move into place, so an interrupted
-                    # download can never leave a truncated CSV that later parses as a
-                    # short-but-valid dataset.
+                    # write to a .part file first, so a broken download never leaves half a CSV
                     tmp = target.with_suffix(target.suffix + ".part")
                     digest = hashlib.sha256()
                     with tmp.open("wb") as fh:
@@ -131,7 +118,7 @@ class CachedDownloader:
                 )
                 time.sleep(backoff)
 
-        # A stale cached copy beats nothing, but the caller must be told it is stale.
+        # every retry failed, so fall back to the old copy if there is one
         if target.exists():
             log.error("all retries failed for %s; using stale cache", name)
             return target

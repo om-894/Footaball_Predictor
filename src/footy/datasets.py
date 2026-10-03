@@ -1,8 +1,8 @@
-"""Time-respecting train/validation/test splits.
+"""
+Splits the data into training, validation and test seasons, always in date order.
 
-The v1 pipeline used ``train_test_split(X, y, test_size=0.2, random_state=42)`` on a time
-series, so the model trained on future matches to predict past ones. Every splitter here
-is ordered: a test row's date is always later than every training row's.
+Every test row is later than every training row, so a model never trains on matches that
+come after the ones it is scored on.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Fold:
-    """Index positions for one ordered fold."""
+    """Row positions of the training, validation and test parts of one fold."""
 
     name: str
     train: np.ndarray
@@ -41,11 +41,7 @@ def season_folds(
     n_valid_seasons: int = 1,
     min_train_seasons: int = 2,
 ) -> list[Fold]:
-    """One fold per test season, training on everything strictly earlier.
-
-    The season immediately before the test season is held out for validation (early
-    stopping, hyperparameters), so no tuning decision ever sees the test season.
-    """
+    """One fold per test season: validate on the season before it, train on the rest before that."""
     seasons = sorted(frame["Season_End_Year"].dropna().unique().astype(int))
     if test_seasons is None:
         test_seasons = tuple(
@@ -79,10 +75,7 @@ def season_folds(
 
 
 def assert_fold_is_ordered(frame: pd.DataFrame, fold: Fold) -> None:
-    """Raise unless every test date is later than every training date.
-
-    Called by the splitter tests, and cheap enough to call before training too.
-    """
+    """Raise unless every test date is after every training and validation date."""
     dates = pd.to_datetime(frame["Match_Date"]).to_numpy()
 
     if len(fold.train) == 0 or len(fold.test) == 0:

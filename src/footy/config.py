@@ -1,16 +1,20 @@
-"""Paths, source URLs and the small set of constants the rest of the package agrees on."""
+"""Paths, data sources and the constants the rest of the package shares."""
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-# Repo layout. Everything derived lives under data/ and is gitignored; only the
-# legacy Sunderland scrape is committed.
+# --------------------------------------------------------------------------- #
+# PATHS
+# --------------------------------------------------------------------------- #
+
+# everything under data/ is gitignored and can be rebuilt, apart from data/legacy.
+# setting FOOTY_ROOT moves the data and reports folders somewhere else
 PROJECT_ROOT = Path(os.environ.get("FOOTY_ROOT", Path(__file__).resolve().parents[2]))
 DATA_DIR = PROJECT_ROOT / "data"
-RAW_DIR = DATA_DIR / "raw"          # downloaded CSVs, exactly as published
-INTERIM_DIR = DATA_DIR / "interim"  # tidied parquet, one row per player-match
+RAW_DIR = DATA_DIR / "raw" # downloaded CSVs, exactly as published
+INTERIM_DIR = DATA_DIR / "interim" # tidied parquet, one row per player-match
 FEATURES_DIR = DATA_DIR / "features"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
@@ -32,19 +36,18 @@ SCRAPED_LEAGUES = {
     "NED-Eredivisie": "Eredivisie",
 }
 
-# --------------------------------------------------------------------------------------
-# Source 1: FBref per-match player tables, republished as plain CSVs by worldfootballR.
-#
-# FBref itself now sits behind a Cloudflare bot gate, so the plain-HTTP scraping the v1
-# scripts did no longer works at all. These release assets carry the identical schema and
-# need no scraping. Live scraping is done by scripts/scrape_fbref.py.
-# --------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------- #
+# DATA SOURCES
+# --------------------------------------------------------------------------- #
+
+# FBref's per-match player tables, republished as CSVs by worldfootballR. FBref itself
+# blocks plain HTTP requests, so live scraping goes through scripts/scrape_fbref.py instead
 WFR_RELEASE_BASE = (
     "https://github.com/JaseZiv/worldfootballR_data/releases/download"
     "/fb_advanced_match_stats"
 )
 
-# worldfootballR's country/gender/tier naming. ENG_M_1st is the Premier League.
+# worldfootballR's league codes, e.g. ENG_M_1st is the Premier League
 LEAGUES = {
     "ENG-PL": "ENG_M_1st",
     "ESP-LaLiga": "ESP_M_1st",
@@ -55,11 +58,8 @@ LEAGUES = {
 }
 DEFAULT_LEAGUE = "ENG-PL"
 
-# --------------------------------------------------------------------------------------
-# Source 2: football-data.co.uk, mirrored on GitHub. Team-level only, but it runs to the
-# current season and -- uniquely -- names the referee, who matters a great deal for fouls
-# and cards and appears nowhere in the FBref tables.
-# --------------------------------------------------------------------------------------
+# football-data.co.uk results, mirrored on GitHub. team level only, but they name the
+# referee, which no FBref table we load does
 FOOTBALL_DATA_BASE = (
     "https://raw.githubusercontent.com/datasets/football-datasets/main/datasets"
 )
@@ -71,11 +71,11 @@ FOOTBALL_DATA_LEAGUE_DIRS = {
     "ITA-SerieA": "serie-a",
 }
 
-# --------------------------------------------------------------------------------------
-# Modelling constants
-# --------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------- #
+# MODELLING
+# --------------------------------------------------------------------------- #
 
-#: Counts we forecast. All are non-negative integers and all scale with minutes played.
+# per-match counts the models forecast
 TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY", "Tkl")
 
 # a live scrape only gets the summary table, which has tackles won (TklW) but not total tackles
@@ -84,11 +84,9 @@ SCRAPED_TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY", "TklW")
 # the combined table keeps the targets both sources have
 COMBINED_TARGETS = tuple(t for t in TARGETS if t in SCRAPED_TARGETS)
 
-#: Half-lives (in appearances) for the exponentially weighted form features.
-EWMA_HALFLIVES = (3, 6, 12)
+EWMA_HALFLIVES = (3, 6, 12) # half-lives of the recent form features, in appearances
 
-#: Per-90 rate columns that feed the form features. These are the stats that plausibly
-#: drive the targets, and every one is available before kickoff via a player's history.
+# stats whose history feeds the form features
 FORM_STATS = (
     "Sh", "SoT", "Fls", "Fld", "CrdY", "CrdR", "Tkl", "Int", "Blocks",
     "Touches", "Touches_AttThird", "Touches_AttPen", "Touches_DefThird",
@@ -99,18 +97,16 @@ FORM_STATS = (
     "TklW", "Clearances", "Challenges_Att", "Challenges_Lost", "Off", "Crs",
 )
 
-#: Ratio columns must never be rescaled by minutes -- doing so is what turned a 66.7%
-#: pass completion into 84.6% in the v1 pipeline. features.to_per90 refuses to touch these.
+# percentages, which features.to_per90 never scales by minutes
 RATIO_COLUMNS = frozenset({
     "Passes_Cmp_pct", "TakeOns_Succ_pct", "Aerials_Won_pct", "Save_pct",
     "Tkl_pct", "Launch_pct",
 })
 
-#: A full match. Used for the per-90 conversion and as the minutes cap.
-FULL_MATCH_MINUTES = 90.0
+FULL_MATCH_MINUTES = 90.0 # used for per-90 rates and as the cap on predicted minutes
 
 
 def ensure_dirs() -> None:
-    """Create the data/model/report tree. Safe to call repeatedly."""
+    """Create the data and reports folders if they are missing."""
     for path in (RAW_DIR, INTERIM_DIR, FEATURES_DIR, REPORTS_DIR):
         path.mkdir(parents=True, exist_ok=True)

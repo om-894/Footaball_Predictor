@@ -1,4 +1,5 @@
-"""Builds the standard player-match table from a live FBref scrape.
+"""
+Builds the standard player-match table from a live FBref scrape.
 
 A live scrape only gets FBref's match summary table, so the result is narrower than the
 mirror: no xG, touches or passes, and tackles won instead of total tackles.
@@ -21,7 +22,7 @@ from footy.ingest import (
 
 log = logging.getLogger(__name__)
 
-#: soccerdata flattens FBref's two-row header to `Group_Stat`.
+# soccerdata joins FBref's two header rows into names like Performance_Sh
 COLUMN_MAP = {
     "Performance_Gls": "Gls",
     "Performance_Ast": "Ast",
@@ -55,17 +56,11 @@ IDENTITY_MAP = {
 
 
 def resolve_home_away(frame: pd.DataFrame) -> pd.DataFrame:
-    """Work out which side each player was on, tolerating inconsistent club names.
+    """Work out which side each player was on and who they played against.
 
-    soccerdata spells clubs differently in its two tables -- the schedule says "QPR" and
-    "Blackburn" where the player stats say "Queens Park Rangers" and "Blackburn Rovers".
-    Comparing them directly marked 7 of 24 clubs as permanently away: 869 away rows to
-    507 home, with 15 matches having no home side at all. Every home/away and opponent
-    feature downstream would have been quietly wrong.
-
-    Rather than hard-code aliases that rot, each match is resolved on its own: it has
-    exactly two teams in the player table, and whichever is the closer string match to the
-    scheduled home team is the home side.
+    soccerdata's schedule shortens club names ("QPR") where its player table doesn't
+    ("Queens Park Rangers"). So each match's home side is whichever of its two teams is
+    the closest string match to the scheduled home team.
     """
     from difflib import SequenceMatcher
 
@@ -99,8 +94,7 @@ def resolve_home_away(frame: pd.DataFrame) -> pd.DataFrame:
     frame["is_home"] = home_flags
     frame["Home_Away"] = np.where(frame["is_home"] == 1, "Home", "Away")
 
-    # Opponent is the other team in the same match -- taken from the player table so the
-    # spelling matches `Team`, which is what the feature joins key on.
+    # the opponent comes from the player table too, so it is spelt the same way as Team
     opponents = {}
     for match_id, group in frame.groupby("MatchURL", sort=False):
         teams = list(group["Team"].dropna().unique())
@@ -111,6 +105,7 @@ def resolve_home_away(frame: pd.DataFrame) -> pd.DataFrame:
         opponents.get((m, t)) for m, t in zip(frame["MatchURL"], frame["Team"])
     ]
 
+    # a match should be about half home rows, anything far off means the matching failed
     balance = frame.groupby("MatchURL")["is_home"].mean()
     lopsided = balance[(balance < 0.2) | (balance > 0.8)]
     if len(lopsided):
@@ -137,7 +132,7 @@ def build_scraped_matches(
         for column in missing:
             frame[column] = 0.0
 
-    # -- match context from the schedule -----------------------------------------
+    # date, matchweek, teams and referee from the schedule
     fixtures = schedule.rename(
         columns={
             "game_id": "MatchURL",
@@ -153,7 +148,7 @@ def build_scraped_matches(
 
     frame = frame.merge(fixtures, on="MatchURL", how="left")
 
-    # -- types --------------------------------------------------------------------
+    # types
     frame["Match_Date"] = pd.to_datetime(frame["Match_Date"], errors="coerce")
     frame["Matchweek"] = pd.to_numeric(frame.get("Matchweek"), errors="coerce")
     frame["Age"] = frame["Age"].map(parse_age)
@@ -161,14 +156,12 @@ def build_scraped_matches(
         frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(0.0)
     frame["Min"] = pd.to_numeric(frame["Min"], errors="coerce")
 
-    # FBref's season label is the starting year; the rest of the package keys on the
-    # season's *end* year, so 2026/27 is 2027.
+    # season codes like 2627 hold both years, the package uses the end year (2027)
     frame["Season_End_Year"] = (
         pd.to_numeric(frame["Season"].astype(str).str[:2], errors="coerce") + 2001
     )
     frame["Competition_Name"] = competition
 
-    # -- derived identity ---------------------------------------------------------
     frame = resolve_home_away(frame)
     frame = add_position_columns(frame)
     frame = drop_unusable_rows(frame)

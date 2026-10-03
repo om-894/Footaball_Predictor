@@ -1,15 +1,9 @@
-"""Fits the whole model ladder on walk-forward folds and scores it.
+"""
+Fits every model on each season fold and scores them on the held-out season.
 
-Two evaluation modes, and the difference between them is informative:
-
-``known-minutes``
-    Condition on the minutes actually played. Isolates the quality of the *rate* model --
-    "given he played 78 minutes, how many fouls?" -- so models are compared without the
-    minutes model's error muddying the picture.
-
-``forecast``
-    Full pre-kickoff forecast: the minutes model supplies expected minutes, and the count
-    model works from those. This is the honest number, and it is always worse.
+Each model is scored twice. "known-minutes" uses the minutes actually played, which
+isolates how good the per-90 rate model is. "forecast" uses the minutes model's
+prediction instead, which is what a real pre-match forecast has to do.
 """
 
 from __future__ import annotations
@@ -52,8 +46,7 @@ class FoldResult:
     fold: str
     rows: list[dict]
     predictions: pd.DataFrame
-    #: The fitted network, kept so callers can ask it for a full predictive distribution
-    #: rather than reconstructing one from the stored mean and a guessed dispersion.
+    # the trained network, kept so `footy predict` can get full distributions from it
     network: "NegBinMLP | None" = None
     feature_columns: list[str] = field(default_factory=list)
 
@@ -66,6 +59,7 @@ def _score_model(
     distribution: CountDistribution,
     mode: str,
 ) -> dict:
+    """Every metric for one model on one target, labelled with the fold and mode."""
     row = score(y_true, distribution, label=name)
     row.update(
         target=target,
@@ -109,7 +103,7 @@ def _fit_count_models(target, train, valid, X_train, X_valid, fold_name, seed) -
     ):
         try:
             fitted[model.name] = model.fit(X_train, y_train, minutes_train)
-        except Exception as exc:  # noqa: BLE001 - a failed model must not kill the run
+        except Exception as exc:  # noqa: BLE001 - one failed model shouldn't stop the run
             log.warning("%s failed on %s/%s: %s", model.name, target, fold_name, exc)
 
     gbm = PoissonGBM(seed=seed).set_validation(
@@ -148,7 +142,7 @@ def run_fold(
         fold.name, len(train), len(valid), len(test), len(columns),
     )
 
-    # -- stage 1: minutes --------------------------------------------------------
+    # stage 1: how many minutes each player will play
     minutes_model = MinutesModel(seed=seed).fit(X_train, minutes_train)
     predicted_minutes = np.clip(minutes_model.predict(X_test), 1.0, FULL_MATCH_MINUTES)
     minutes_mae = float(np.abs(predicted_minutes - minutes_test).mean())
@@ -165,10 +159,10 @@ def run_fold(
     predictions["pred_minutes"] = predicted_minutes
     predictions["fold"] = fold.name
 
-    # -- the neural net is trained once for all targets jointly ------------------
+    # the network learns all targets together, so it is trained once per fold
     network = _fit_network(train, valid, X_train, X_valid, targets, seed) if include_nn else None
 
-    # -- stage 2: one count model per target -------------------------------------
+    # stage 2: the per-90 rate models, one set per target
     for target in targets:
         y_test = test[target].to_numpy(dtype=float)
         fitted = _fit_count_models(target, train, valid, X_train, X_valid, fold.name, seed)
@@ -215,7 +209,7 @@ def run_walk_forward(
     include_nn: bool = True,
     seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Run every fold. Returns ``(per-fold scores, out-of-sample predictions)``."""
+    """Run every fold and return the per-fold scores and the held-out predictions."""
     folds = season_folds(frame, test_seasons=test_seasons)
     if not folds:
         raise ValueError("no usable folds; the data may not span enough seasons")
@@ -233,12 +227,11 @@ def run_walk_forward(
 
 
 def summarise(scores: pd.DataFrame, mode: str = "forecast") -> pd.DataFrame:
-    """Average each model's metrics across folds, for the headline table."""
+    """Each model's metrics averaged over the folds, weighted by fold size."""
     subset = scores[scores["mode"] == mode]
     metrics = ["LogScore", "CRPS", "PoissonDev", "MAE", "RMSE", "ECE", "pred_mean", "actual_mean"]
     available = [m for m in metrics if m in subset.columns]
 
-    # Weight folds by size so a short season does not dominate.
     def weighted(group: pd.DataFrame) -> pd.Series:
         weights = group["n"] / group["n"].sum()
         return pd.Series({m: float((group[m] * weights).sum()) for m in available})
@@ -256,11 +249,7 @@ def summarise(scores: pd.DataFrame, mode: str = "forecast") -> pd.DataFrame:
 def improvement_over_baseline(
     summary: pd.DataFrame, baseline: str = BENCHMARK, metric: str = "LogScore"
 ) -> pd.DataFrame:
-    """Percentage improvement over the benchmark, per target.
-
-    Negative means the model is worse than simply extrapolating the player's own recent
-    form -- which is the result that must be reported, not hidden.
-    """
+    """Percentage improvement on the benchmark for each target, negative where a model is worse."""
     pivot = summary.pivot_table(index="target", columns="model", values=metric)
     if baseline not in pivot.columns:
         raise KeyError(f"baseline {baseline!r} not in summary")

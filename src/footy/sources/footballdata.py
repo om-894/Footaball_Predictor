@@ -1,12 +1,7 @@
-"""Team-level match results from football-data.co.uk, mirrored on GitHub.
+"""
+Match results from football-data.co.uk, mirrored on GitHub.
 
-Two things this gives us that the FBref tables do not:
-
-1. **The referee.** Referees vary a lot in how many fouls they call, and the name appears
-   in no FBref table we load. It is one of the stronger available predictors for `Fls`
-   and `CrdY`.
-2. **Recency.** The FBref mirror stopped updating in September 2025; this one runs to the
-   current season, so it can carry team-form features past that point.
+Used for the referee, which none of the FBref tables we load include.
 """
 
 from __future__ import annotations
@@ -20,8 +15,8 @@ from footy.sources.base import CachedDownloader, SourceError
 
 log = logging.getLogger(__name__)
 
-#: football-data.co.uk abbreviates club names; FBref writes them out. Explicit rather
-#: than fuzzy-matched, because a wrong join here silently attaches the wrong referee.
+# football-data shortens club names where FBref writes them out. the list is explicit,
+# since a wrong match would attach the wrong referee
 TEAM_NAME_TO_FBREF = {
     "Arsenal": "Arsenal",
     "Aston Villa": "Aston Villa",
@@ -57,6 +52,7 @@ TEAM_NAME_TO_FBREF = {
     "Wolves": "Wolverhampton Wanderers",
 }
 
+# football-data column names and what they are called here
 COLUMNS = {
     "Date": "Match_Date",
     "HomeTeam": "Home_Team",
@@ -72,7 +68,7 @@ COLUMNS = {
 
 
 def season_code(season_end_year: int) -> str:
-    """2024 (i.e. 2023/24) -> "2324", matching the mirror's filenames."""
+    """The mirror's season code, e.g. 2024 (meaning 2023/24) gives "2324"."""
     return f"{(season_end_year - 1) % 100:02d}{season_end_year % 100:02d}"
 
 
@@ -83,7 +79,7 @@ def load_match_results(
     downloader: CachedDownloader | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Return one row per match, with team names normalised to FBref spelling."""
+    """One row per match, with team names changed to FBref's spelling."""
     if league not in FOOTBALL_DATA_LEAGUE_DIRS:
         raise KeyError(
             f"No football-data mapping for {league!r}. "
@@ -100,7 +96,7 @@ def load_match_results(
         try:
             path = downloader.fetch(url, f"footballdata_{directory}_{code}.csv", force=force)
         except SourceError:
-            # A season that has not started yet simply 404s. Skip it rather than fail.
+            # a season that hasn't started yet has no file, so it is skipped
             log.warning("no football-data file for %s season %s", league, season)
             continue
 
@@ -133,11 +129,10 @@ def load_match_results(
 
 
 def attach_referee(player_matches: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
-    """Left-join the referee onto a player-match frame.
+    """Join the referee onto each player-match by date and both team names.
 
-    Matched on date plus both team names. Kick-off dates occasionally differ by a day
-    between sources (late reschedules, timezone rounding), so we retry unmatched rows
-    against a +/-1 day window before giving up.
+    The two sources sometimes disagree on the date by a day, so unmatched rows are tried
+    again within a day either side.
     """
     referees = results[["Match_Date", "Home_Team", "Away_Team", "Referee"]].copy()
     key = ["Match_Date", "Home_Team", "Away_Team"]
@@ -148,7 +143,7 @@ def attach_referee(player_matches: pd.DataFrame, results: pd.DataFrame) -> pd.Da
 
     unmatched = out["Referee"].isna()
     if unmatched.any():
-        # Second pass on team pair alone, restricted to fixtures within one day.
+        # second pass on the two teams only, within a day of the date
         pairs = referees.rename(columns={"Match_Date": "ref_date"})
         retry = (
             out.loc[unmatched, ["Home_Team", "Away_Team", "Match_Date"]]

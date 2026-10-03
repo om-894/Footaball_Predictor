@@ -1,11 +1,8 @@
-"""Gradient boosting with a Poisson objective.
+"""
+LightGBM with a Poisson objective and a log-minutes offset.
 
-LightGBM handles the missing values that are structural in this data (a debutant has no
-form) natively, and captures the interactions a GLM cannot -- a defender against a team
-that crosses constantly is a different proposition from the same defender against a side
-that plays through the middle.
-
-Exposure enters through ``init_score``, LightGBM's equivalent of a GLM offset.
+The offset goes in through `init_score`, which plays the same part as a GLM offset.
+LightGBM also copes with missing values itself, e.g. a debutant's missing form.
 """
 
 from __future__ import annotations
@@ -19,7 +16,7 @@ from footy.models.base import CountModel, log_exposure
 
 
 class PoissonGBM(CountModel):
-    """LightGBM regression with ``objective="poisson"`` and a log-minutes offset."""
+    """LightGBM regression with objective="poisson" and a log-minutes offset."""
 
     name = "PoissonGBM"
 
@@ -44,11 +41,7 @@ class PoissonGBM(CountModel):
     def set_validation(
         self, X: pd.DataFrame, y: np.ndarray, minutes: np.ndarray
     ) -> "PoissonGBM":
-        """Supply a validation fold for early stopping.
-
-        Deliberately explicit: the validation data must come from the fold, never from a
-        random slice of training, or early stopping itself becomes a leak.
-        """
+        """Use the fold's validation season for early stopping."""
         self.eval_set_ = (X, np.asarray(y, dtype=float), np.asarray(minutes, dtype=float))
         return self
 
@@ -70,8 +63,7 @@ class PoissonGBM(CountModel):
         self.model_.fit(X, y, **fit_kwargs)
 
     def _predict_rate(self, X: pd.DataFrame) -> np.ndarray:
-        # raw_score gives the linear predictor; exponentiating without the offset yields
-        # the per-90 rate, matching every other model's contract.
+        # raw_score is the linear predictor without the offset, so exp of it is the per-90 rate
         linear = self.model_.predict(
             X.reindex(columns=self.columns_), raw_score=True
         )

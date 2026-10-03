@@ -1,7 +1,8 @@
-"""Raw source CSVs -> one tidy, validated Parquet table of player-matches.
+"""
+Builds the player-match table from the downloaded FBref and football-data files.
 
-Everything downstream reads the output of :func:`build_player_matches`, so this is where
-type coercion, the awkward FBref string formats, and the schema contract all live.
+One row per player per match. Everything after this reads that table, so the type fixes,
+FBref's string formats and the checks on the table all live here.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from footy.sources.base import CachedDownloader
 
 log = logging.getLogger(__name__)
 
-#: Columns that identify rather than measure. Never treated as numeric features.
+# columns that identify a row rather than measure anything, so they are never made numeric
 ID_COLUMNS = [
     "MatchURL", "Match_Date", "Matchweek", "Season_End_Year", "Competition_Name",
     "Team", "Opponent", "Home_Away", "Player", "Player_Href", "Nation", "Pos",
@@ -37,8 +38,12 @@ _LETTER_SWAPS = str.maketrans({
 })
 
 
+# --------------------------------------------------------------------------- #
+# FBREF STRING FORMATS
+# --------------------------------------------------------------------------- #
+
 def parse_matchweek(value: object) -> float:
-    """'Premier League (Matchweek 12)' -> 12.0."""
+    """Matchweek number from text like 'Premier League (Matchweek 12)', which gives 12.0."""
     if not isinstance(value, str):
         return np.nan
     match = _MATCHWEEK_RE.search(value)
@@ -46,7 +51,7 @@ def parse_matchweek(value: object) -> float:
 
 
 def parse_age(value: object) -> float:
-    """FBref writes age as 'years-days'. '26-075' -> 26.205."""
+    """Age in years from FBref's 'years-days' text, e.g. '26-075' gives 26.205."""
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return float(value) if pd.notna(value) else np.nan
     if not isinstance(value, str):
@@ -73,15 +78,15 @@ def name_key(name: object) -> str:
 
 
 def split_positions(value: object) -> list[str]:
-    """'FW,LW,LM' -> ['FW', 'LW', 'LM'].
-
-    FBref lists every position a player occupied in the match, so this is genuinely
-    multi-label and must not be squeezed into one categorical.
-    """
+    """Every position a player played in a match, e.g. 'FW,LW,LM' gives ['FW', 'LW', 'LM']."""
     if not isinstance(value, str) or not value.strip():
         return []
     return [part.strip() for part in value.split(",") if part.strip()]
 
+
+# --------------------------------------------------------------------------- #
+# BUILDING THE TABLE
+# --------------------------------------------------------------------------- #
 
 def add_position_columns(frame: pd.DataFrame) -> pd.DataFrame:
     """Add the `positions` list and the `is_gk` flag from FBref's `Pos` string."""
@@ -109,7 +114,7 @@ def build_player_matches(
     force: bool = False,
     write: bool = True,
 ) -> pd.DataFrame:
-    """Download, clean, validate and (optionally) persist the player-match table."""
+    """Download, clean and check the player-match table, saving it unless `write` is False."""
     ensure_dirs()
     downloader = downloader or CachedDownloader()
 
@@ -117,25 +122,24 @@ def build_player_matches(
         league, stat_types, downloader=downloader, force=force
     )
 
-    # Sh / SoT / xG come from the shot-level file rather than an aggregate table, which
-    # is both wider in coverage and richer (distance, body part).
+    # shots come from the shot-level file, which covers every season (see worldfootballr.py)
     shooting = worldfootballr.load_match_shooting(
         league, downloader=downloader, force=force
     )
     frame = worldfootballr.attach_shooting(frame, shooting)
 
-    # -- types -------------------------------------------------------------------
+    # types
     frame["Match_Date"] = pd.to_datetime(frame["Match_Date"], errors="coerce")
     frame["Matchweek"] = frame["Matchweek"].map(parse_matchweek)
     frame["Age"] = frame["Age"].map(parse_age)
     frame["Season_End_Year"] = pd.to_numeric(frame["Season_End_Year"], errors="coerce")
 
-    # Every stat column is numeric; FBref occasionally emits blanks or stray strings.
+    # FBref sometimes leaves blanks or stray text in stat columns
     stat_columns = [c for c in frame.columns if c not in ID_COLUMNS and c != "Age"]
     for column in stat_columns:
         frame[column] = pd.to_numeric(frame[column], errors="coerce")
 
-    # -- derived identity --------------------------------------------------------
+    # home or away, opponent and positions
     frame["Opponent"] = np.where(
         frame["Home_Away"].str.lower().eq("home"), frame["Away_Team"], frame["Home_Team"]
     )
@@ -143,9 +147,8 @@ def build_player_matches(
     frame = add_position_columns(frame)
     frame = drop_unusable_rows(frame)
 
-    # A left-joined table contributes NaN only where a player has no entry in it. For
-    # count stats that genuinely means zero, but we log the rate so a badly broken join
-    # cannot hide behind a wall of zeros.
+    # a player missing from a joined table gets NaN, which means zero for a count. the
+    # missing rate is logged first so a broken join can't hide behind the zeros
     count_columns = [c for c in stat_columns if not c.endswith("_pct")]
     na_rate = frame[count_columns].isna().mean()
     noisy = na_rate[na_rate > 0.05]
@@ -156,7 +159,7 @@ def build_player_matches(
         )
     frame[count_columns] = frame[count_columns].fillna(0.0)
 
-    # -- referee -----------------------------------------------------------------
+    # referee from football-data, which is optional so a failure only logs a warning
     if with_referee:
         seasons = tuple(sorted(frame["Season_End_Year"].dropna().astype(int).unique()))
         try:
@@ -164,7 +167,7 @@ def build_player_matches(
                 league, seasons, downloader=downloader, force=force
             )
             frame = footballdata.attach_referee(frame, results)
-        except Exception as exc:  # noqa: BLE001 - referee is a nice-to-have, not required
+        except Exception as exc:  # noqa: BLE001 - the referee is optional
             log.warning("referee join skipped: %s", exc)
             frame["Referee"] = pd.NA
     else:
@@ -176,7 +179,6 @@ def build_player_matches(
     validate_player_matches(frame)
 
     if write:
-        # `positions` is a list column; Parquet handles it natively.
         frame.to_parquet(PLAYER_MATCHES_PATH, index=False)
         log.info("wrote %s (%d rows x %d cols)", PLAYER_MATCHES_PATH, *frame.shape)
 
@@ -186,11 +188,7 @@ def build_player_matches(
 def validate_player_matches(
     frame: pd.DataFrame, targets: tuple[str, ...] = TARGETS
 ) -> None:
-    """Fail loudly on the invariants the rest of the package relies on.
-
-    ``targets`` is a parameter because the Championship supports a narrower set -- FBref
-    publishes no total-tackles column for the second tier.
-    """
+    """Raise if the table breaks anything later steps rely on, e.g. duplicate rows or negative counts."""
     required = {"MatchURL", "Match_Date", "Team", "Player", "Min", "Season_End_Year"}
     missing = required - set(frame.columns)
     if missing:
@@ -213,7 +211,7 @@ def validate_player_matches(
 
 
 def load_player_matches() -> pd.DataFrame:
-    """Read the cached player-match table, with a useful error if it is absent."""
+    """Read the saved player-match table."""
     if not PLAYER_MATCHES_PATH.exists():
         raise FileNotFoundError(
             f"{PLAYER_MATCHES_PATH} not found. Run `footy fetch` first."

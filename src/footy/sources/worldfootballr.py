@@ -1,13 +1,8 @@
-"""FBref per-match player stats, read from the worldfootballR_data GitHub releases.
+"""
+FBref per-match player tables, downloaded from the worldfootballR_data GitHub releases.
 
-FBref publishes a match's player stats across several tables. This module downloads the
-ones we need, renames their columns to a single flat vocabulary, and joins them on
-``(MatchURL, Team, Player)`` -- verified to be a unique key across all 81,328 rows of the
-Premier League file.
-
-Why not scrape FBref directly: it now serves a Cloudflare interstitial to plain HTTP
-clients, so the v1 approach cannot work. scripts/scrape_fbref.py offers an optional
-browser-driven path for topping up recent matches.
+Each table is downloaded, its columns renamed to one shared set of names, then the tables
+are joined on (MatchURL, Team, Player).
 """
 
 from __future__ import annotations
@@ -21,36 +16,31 @@ from footy.sources.base import CachedDownloader, SourceError
 
 log = logging.getLogger(__name__)
 
-#: Identify a player-match. Verified duplicate-free on the full ENG_M_1st misc table.
+# one row per player per match, checked to be unique in the Premier League misc table
 JOIN_KEY = ["MatchURL", "Team", "Player"]
 
-#: The table we anchor the join on. It must be the one with the widest coverage, because
-#: every other table is left-joined onto it.
-#:
-#: This is `misc`, not `summary`, and the difference matters: upstream, the published
-#: `summary` asset covers only 2 seasons (8,464 rows) while `misc` covers 8 (81,328).
-#: Anchoring on `summary` silently discards ~90% of the history.
+# every other table is left-joined onto this one, so it needs the widest coverage. misc
+# covers every season, while the published summary table only covers two
 ANCHOR_TABLE = "misc"
 
-#: Match-level context, identical across every table, so we take it from the anchor only.
+# match details, the same in every table, so they only come from the anchor
 MATCH_CONTEXT = [
     "MatchURL", "Match_Date", "Matchweek", "Season_End_Year", "Competition_Name",
     "Home_Team", "Away_Team", "Home_Score", "Away_Score", "Home_xG", "Away_xG",
 ]
 
-#: Per-player identity columns, also duplicated across tables.
+# player details, also repeated in every table
 PLAYER_CONTEXT = ["Team", "Home_Away", "Player", "Player_Href", "Nation", "Pos", "Age", "Min"]
 
-# --------------------------------------------------------------------------------------
-# Column vocabulary.
-#
-# FBref's own names are inconsistent between tables (`Touches` in summary vs
-# `Touches_Touches` in possession) and some carry spaces. Each entry maps a source column
-# to the single name the rest of the package uses. Anything not listed is dropped, so an
-# upstream rename surfaces as a missing column rather than a silently absent feature.
-# --------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------- #
+# COLUMN NAMES
+# --------------------------------------------------------------------------- #
+
+# FBref names the same stat differently in different tables, so each table's columns are
+# mapped to one shared name. unlisted columns are dropped, and a listed one going missing
+# raises an error
 COLUMN_MAP: dict[str, dict[str, str]] = {
-    # Anchor table, and the one that retires the hand-typed foul arrays.
+    # the anchor table, which also holds the fouls (Fls, Fld)
     "misc": {
         "Fls": "Fls", "Fld": "Fld", "Off": "Off", "Crs": "Crs",
         "TklW": "TklW", "PKwon": "PKwon", "PKcon": "PKcon", "OG": "OG",
@@ -98,10 +88,8 @@ COLUMN_MAP: dict[str, dict[str, str]] = {
     },
 }
 
-#: Loaded by default. `passing_types` is available but adds ~46MB for features that
-#: matter much less. `summary` is deliberately excluded: upstream it covers only 2 of the
-#: 8 seasons, and every column it holds is recoverable from the tables below plus the
-#: shot-level file.
+# tables loaded by default. passing_types is a big download for little gain, and summary is
+# left out because it only covers two seasons (its shots come from the shot file instead)
 DEFAULT_STAT_TYPES = ("misc", "possession", "passing", "defense")
 
 
@@ -133,8 +121,7 @@ def _load_table(
     mapping = COLUMN_MAP[stat_type]
     missing = sorted(set(mapping) - set(frame.columns))
     if missing:
-        # Loud, not silent: a renamed upstream column would otherwise quietly become a
-        # column of NaNs that the model happily trains on.
+        # a renamed upstream column would otherwise turn quietly into a column of NaNs
         raise SourceError(
             f"{stat_type} table is missing expected columns {missing}. "
             "The upstream schema has probably changed; update COLUMN_MAP."
@@ -163,7 +150,7 @@ def load_player_match_stats(
     downloader: CachedDownloader | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Return one wide row per player-match, joined across the requested FBref tables."""
+    """One wide row per player-match, joined across the requested FBref tables."""
     if ANCHOR_TABLE not in stat_types:
         raise ValueError(
             f"stat_types must include {ANCHOR_TABLE!r}, since it anchors the join and "
@@ -188,17 +175,16 @@ def load_player_match_stats(
     return merged
 
 
-# --------------------------------------------------------------------------------------
-# Shot-level events
-# --------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------- #
+# SHOT EVENTS
+# --------------------------------------------------------------------------- #
 
 SHOOTING_URL = (
     "https://github.com/JaseZiv/worldfootballR_data/releases/download"
     "/fb_match_shooting/{code}_match_shooting.csv"
 )
 
-#: FBref counts a shot as on target when it is a goal or was saved. Blocked shots,
-#: woodwork and "saved off target" are all off target.
+# FBref counts a shot as on target if it was scored or saved
 ON_TARGET_OUTCOMES = frozenset({"Goal", "Saved"})
 
 
@@ -208,12 +194,7 @@ def load_match_shooting(
     downloader: CachedDownloader | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
-    """Aggregate the shot-level file to one row per player-match.
-
-    This is where ``Sh``, ``SoT`` and ``xG`` come from. The published `summary` table
-    would also carry them, but only for 2 of the 8 seasons -- and shot events give us
-    shot distance and body part for free, which an aggregate never could.
-    """
+    """Shots, shots on target, xG, distance, headers and free kicks per player-match, from the shot file."""
     code = league_code(league)
     downloader = downloader or CachedDownloader()
     path = downloader.fetch(
@@ -255,9 +236,7 @@ def load_match_shooting(
 
 
 def attach_shooting(player_matches: pd.DataFrame, shooting: pd.DataFrame) -> pd.DataFrame:
-    """Left-join shot aggregates. A player with no shots is absent from the shot file,
-    so the resulting NaNs are genuine zeros -- except ``Sh_dist_mean``, which is
-    undefined with no shots and stays missing."""
+    """Join the shot totals on as zeros for players with no shots, leaving their Sh_dist_mean as NaN."""
     out = player_matches.merge(shooting, on=JOIN_KEY, how="left", validate="one_to_one")
     for column in ("Sh", "SoT", "xG", "Sh_headers", "Sh_free_kicks"):
         out[column] = out[column].fillna(0.0)
