@@ -6,7 +6,7 @@ ones we need, renames their columns to a single flat vocabulary, and joins them 
 Premier League file.
 
 Why not scrape FBref directly: it now serves a Cloudflare interstitial to plain HTTP
-clients, so the v1 approach cannot work. ``footy.sources.fbref_live`` offers an optional
+clients, so the v1 approach cannot work. scripts/scrape_fbref.py offers an optional
 browser-driven path for topping up recent matches.
 """
 

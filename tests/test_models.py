@@ -9,7 +9,7 @@ import pytest
 from footy import features as feature_module
 from footy.models.baselines import GlobalMean, PlayerEWMA, PositionMean, ShrunkCareerRate
 from footy.models.glm import PoissonGLM
-from footy.models.minutes import MinutesModel, NaiveMinutesModel
+from footy.models.minutes import MinutesModel
 from tests.conftest import make_player_matches
 
 
@@ -123,13 +123,6 @@ def test_minutes_quantiles_are_monotone(built: pd.DataFrame) -> None:
     values = quantiles.predict_quantiles(built[columns]).to_numpy()
 
     assert (np.diff(values, axis=1) >= -1e-9).all()
-
-
-def test_naive_minutes_model_falls_back_cleanly(built: pd.DataFrame) -> None:
-    model = NaiveMinutesModel().fit(built, built["Min"].to_numpy(float))
-    predictions = model.predict(built.drop(columns=["Min_ewm6"], errors="ignore"))
-    assert np.isfinite(predictions).all()
-    assert (predictions > 0).all()
 
 
 def test_glm_rate_is_capped_at_a_plausible_value(matrix) -> None:

@@ -13,7 +13,7 @@ What the summary *does* carry is `Fls` and `Fld`. Worth stating plainly, because
 scripts typed those two columns in by hand for all 17 Sunderland matches: the fouls were
 available from FBref the whole time.
 
-So this module scrapes live via :mod:`footy.sources.fbref_live` and emits the same shape
+So this module takes a live scrape from scripts/scrape_fbref.py and emits the same shape
 as ``ingest.build_player_matches``, letting the feature pipeline, models and evaluation
 run unchanged. The feature set is thinner, and :func:`footy.features.build_features`
 degrades gracefully because it intersects ``FORM_STATS`` with the columns present.

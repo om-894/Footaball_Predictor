@@ -10,15 +10,11 @@ Exposure enters through ``init_score``, LightGBM's equivalent of a GLM offset.
 
 from __future__ import annotations
 
-import logging
-
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor, early_stopping, log_evaluation
 
 from footy.models.base import CountModel
-
-log = logging.getLogger(__name__)
 
 
 class PoissonGBM(CountModel):
@@ -79,11 +75,3 @@ class PoissonGBM(CountModel):
             X.reindex(columns=self.columns_), raw_score=True
         )
         return np.exp(np.clip(linear, -20, 20))
-
-    def feature_importance(self, top: int = 25) -> pd.Series:
-        """Gain-based importances, for the write-up rather than the model."""
-        importances = pd.Series(
-            self.model_.booster_.feature_importance(importance_type="gain"),
-            index=self.columns_,
-        )
-        return importances.sort_values(ascending=False).head(top)

@@ -12,14 +12,11 @@ while being useless.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from scipy import stats
-
-log = logging.getLogger(__name__)
 
 #: Upper bound for the CRPS / calibration sums. The largest count in the Premier League
 #: data is 9 fouls, so 40 is far into the tail for every target we model.

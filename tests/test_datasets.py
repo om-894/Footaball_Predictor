@@ -9,7 +9,6 @@ import pytest
 from footy.datasets import (
     Fold,
     assert_fold_is_ordered,
-    expanding_matchweek_folds,
     season_folds,
 )
 from tests.conftest import make_player_matches
@@ -33,21 +32,6 @@ def test_validation_precedes_test(frame: pd.DataFrame) -> None:
         seasons = frame["Season_End_Year"].to_numpy()
         assert seasons[fold.valid].max() < seasons[fold.test].min()
         assert seasons[fold.train].max() < seasons[fold.valid].min()
-
-
-def test_expanding_matchweek_folds_are_ordered(frame: pd.DataFrame) -> None:
-    season = int(frame["Season_End_Year"].max())
-    folds = expanding_matchweek_folds(frame, test_season=season, step=2, min_matchweek=3)
-    assert folds
-    for fold in folds:
-        assert_fold_is_ordered(frame, fold)
-
-
-def test_expanding_folds_grow_their_training_set(frame: pd.DataFrame) -> None:
-    season = int(frame["Season_End_Year"].max())
-    folds = expanding_matchweek_folds(frame, test_season=season, step=2, min_matchweek=3)
-    sizes = [len(fold.train) for fold in folds]
-    assert sizes == sorted(sizes), "training set should never shrink as the season runs"
 
 
 def test_a_shuffled_split_is_rejected(frame: pd.DataFrame) -> None:

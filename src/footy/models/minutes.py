@@ -11,21 +11,17 @@ let the count models integrate over it.
 
 Known limitation: the source data contains only players who actually appeared, so this
 model is conditional on selection. It cannot tell you whether a player will be picked --
-only how long they are likely to play if they are. ``footy.sources.fbref_live`` can
+only how long they are likely to play if they are. soccerdata's ``read_lineup`` can
 supply lineups including unused substitutes, which would lift the restriction.
 """
 
 from __future__ import annotations
-
-import logging
 
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 
 from footy.config import FULL_MATCH_MINUTES
-
-log = logging.getLogger(__name__)
 
 #: Quantiles used to represent the minutes distribution.
 QUANTILES = (0.1, 0.25, 0.5, 0.75, 0.9)
@@ -80,24 +76,3 @@ class MinutesModel:
         edges = np.concatenate([[0.0], (levels[:-1] + levels[1:]) / 2, [1.0]])
         weights = np.diff(edges)
         return values @ weights
-
-
-class NaiveMinutesModel:
-    """Fallback that predicts each player's recent average minutes.
-
-    Useful as a reference point, and as a stand-in when a fold has too little history to
-    fit the gradient-boosted version.
-    """
-
-    def __init__(self, column: str = "Min_ewm6") -> None:
-        self.column = column
-        self.fallback = FULL_MATCH_MINUTES
-
-    def fit(self, X: pd.DataFrame, y: np.ndarray) -> "NaiveMinutesModel":
-        self.fallback = float(np.mean(y))
-        return self
-
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
-        if self.column not in X.columns:
-            return np.full(len(X), self.fallback)
-        return X[self.column].fillna(self.fallback).clip(1.0, FULL_MATCH_MINUTES).to_numpy()

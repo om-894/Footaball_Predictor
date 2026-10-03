@@ -381,7 +381,7 @@ preserved in [`data/legacy/`](data/legacy/sunderland_championship_2024_25/README
 ```
 src/footy/
   config.py          paths, league codes, targets, constants
-  sources/           base.py (cached HTTP), worldfootballr.py, footballdata.py, fbref_live.py
+  sources/           base.py (cached HTTP), worldfootballr.py, footballdata.py
   ingest.py          raw CSV -> validated player-match Parquet
   championship.py    second-tier ingest, live-scraped, narrower schema
   features.py        causal feature construction

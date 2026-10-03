@@ -25,9 +25,6 @@ class Fold:
     valid: np.ndarray
     test: np.ndarray
 
-    def __len__(self) -> int:  # pragma: no cover - display only
-        return len(self.test)
-
 
 def season_folds(
     frame: pd.DataFrame,
@@ -67,48 +64,6 @@ def season_folds(
         )
 
     log.info("built %d season folds", len(folds))
-    return folds
-
-
-def expanding_matchweek_folds(
-    frame: pd.DataFrame, *, test_season: int, step: int = 4, min_matchweek: int = 5
-) -> list[Fold]:
-    """Refit repeatedly through a season, as you would in live use.
-
-    Each fold trains on every prior season plus the completed matchweeks of the test
-    season, then predicts the next ``step`` matchweeks.
-    """
-    seasons = frame["Season_End_Year"].to_numpy()
-    matchweeks = frame["Matchweek"].to_numpy()
-    in_season = seasons == test_season
-    if not in_season.any():
-        raise ValueError(f"season {test_season} is not present in the frame")
-
-    available = sorted(
-        int(w) for w in np.unique(matchweeks[in_season]) if not np.isnan(w)
-    )
-    folds: list[Fold] = []
-
-    for start in range(min_matchweek, max(available) + 1, step):
-        test_weeks = [w for w in available if start <= w < start + step]
-        if not test_weeks:
-            continue
-
-        history = (seasons < test_season) | (in_season & (matchweeks < start))
-        # The most recent completed matchweeks of the test season act as validation.
-        valid_mask = in_season & (matchweeks >= start - step) & (matchweeks < start)
-        train_mask = history & ~valid_mask
-
-        folds.append(
-            Fold(
-                name=f"{test_season}-mw{start:02d}",
-                train=np.flatnonzero(train_mask),
-                valid=np.flatnonzero(valid_mask),
-                test=np.flatnonzero(in_season & np.isin(matchweeks, test_weeks)),
-            )
-        )
-
-    log.info("built %d expanding matchweek folds for %s", len(folds), test_season)
     return folds
 
 

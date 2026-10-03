@@ -16,7 +16,6 @@ from footy import features as feature_module
 from footy.config import (
     DEFAULT_LEAGUE,
     FEATURES_DIR,
-    FULL_MATCH_MINUTES,
     REPORTS_DIR,
     TARGETS,
     ensure_dirs,

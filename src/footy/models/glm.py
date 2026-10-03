@@ -30,7 +30,6 @@ class PoissonGLM(CountModel):
     """Log-link Poisson regression on standardised features."""
 
     name = "PoissonGLM"
-    family = "poisson"
 
     def __init__(self, max_features: int = 60, ridge: float = 1e-3) -> None:
         super().__init__()

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
-import pytest
 
 from footy.championship import CHAMPIONSHIP_TARGETS, build_championship_matches, resolve_home_away
 

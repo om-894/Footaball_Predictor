@@ -22,7 +22,6 @@ data/raw/
 data/interim/
 data/features/
 reports/
-/models/
 
 # files left behind by soccerdata's browser driver
 downloaded_files/

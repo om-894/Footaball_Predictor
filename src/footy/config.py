@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
 from pathlib import Path
 
 # Repo layout. Everything derived lives under data/ and is gitignored; only the
@@ -13,7 +12,6 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"          # downloaded CSVs, exactly as published
 INTERIM_DIR = DATA_DIR / "interim"  # tidied parquet, one row per player-match
 FEATURES_DIR = DATA_DIR / "features"
-MODELS_DIR = PROJECT_ROOT / "models"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
 # --------------------------------------------------------------------------------------
@@ -21,23 +19,11 @@ REPORTS_DIR = PROJECT_ROOT / "reports"
 #
 # FBref itself now sits behind a Cloudflare bot gate, so the plain-HTTP scraping the v1
 # scripts did no longer works at all. These release assets carry the identical schema and
-# need no scraping. See footy.sources.fbref_live for the optional live path.
+# need no scraping. Live scraping is done by scripts/scrape_fbref.py.
 # --------------------------------------------------------------------------------------
 WFR_RELEASE_BASE = (
     "https://github.com/JaseZiv/worldfootballR_data/releases/download"
     "/fb_advanced_match_stats"
-)
-
-# FBref splits a match's player stats over several tables. `misc` is the important one:
-# it holds Fls/Fld, the fouls the v1 scraper typed in by hand.
-FBREF_STAT_TYPES = (
-    "summary",
-    "passing",
-    "passing_types",
-    "defense",
-    "possession",
-    "misc",
-    "keeper",
 )
 
 # worldfootballR's country/gender/tier naming. ENG_M_1st is the Premier League.
@@ -74,9 +60,6 @@ FOOTBALL_DATA_LEAGUE_DIRS = {
 #: Counts we forecast. All are non-negative integers and all scale with minutes played.
 TARGETS = ("Sh", "SoT", "Fls", "Fld", "CrdY", "Tkl")
 
-#: Exposure. Modelled separately in models/minutes.py, then used as a Poisson offset.
-EXPOSURE = "Min"
-
 #: Half-lives (in appearances) for the exponentially weighted form features.
 EWMA_HALFLIVES = (3, 6, 12)
 
@@ -103,45 +86,7 @@ RATIO_COLUMNS = frozenset({
 FULL_MATCH_MINUTES = 90.0
 
 
-@dataclass(frozen=True)
-class WalkForwardSplit:
-    """One fold of the walk-forward evaluation.
-
-    Seasons are FBref ``Season_End_Year`` values, so 2024 means 2023/24.
-    """
-
-    train_seasons: tuple[int, ...]
-    valid_seasons: tuple[int, ...]
-    test_seasons: tuple[int, ...]
-
-    def __str__(self) -> str:  # pragma: no cover - display only
-        return (
-            f"train{list(self.train_seasons)}"
-            f"/valid{list(self.valid_seasons)}"
-            f"/test{list(self.test_seasons)}"
-        )
-
-
-@dataclass(frozen=True)
-class Settings:
-    league: str = DEFAULT_LEAGUE
-    seed: int = 42
-    #: Minimum prior appearances before a player's own form is trusted over the
-    #: positional prior. Below this, empirical-Bayes shrinkage does the work.
-    min_prior_appearances: int = 3
-    stat_types: tuple[str, ...] = field(default=FBREF_STAT_TYPES)
-
-    @property
-    def wfr_code(self) -> str:
-        try:
-            return LEAGUES[self.league]
-        except KeyError:
-            raise KeyError(
-                f"Unknown league {self.league!r}. Known: {sorted(LEAGUES)}"
-            ) from None
-
-
 def ensure_dirs() -> None:
     """Create the data/model/report tree. Safe to call repeatedly."""
-    for path in (RAW_DIR, INTERIM_DIR, FEATURES_DIR, MODELS_DIR, REPORTS_DIR):
+    for path in (RAW_DIR, INTERIM_DIR, FEATURES_DIR, REPORTS_DIR):
         path.mkdir(parents=True, exist_ok=True)
