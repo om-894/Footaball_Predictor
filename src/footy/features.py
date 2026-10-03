@@ -112,7 +112,7 @@ def add_player_form(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_rest_and_congestion(frame: pd.DataFrame) -> pd.DataFrame:
-    """Days since the player's previous match, and how busy the last two weeks were."""
+    """Days since the player's previous match plus how busy the last two weeks were."""
     frame = frame.sort_values(["Player", "Match_Date", "MatchURL"]).copy()
 
     previous = frame.groupby("Player", sort=False)["Match_Date"].shift(1)

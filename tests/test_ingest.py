@@ -1,4 +1,4 @@
-"""Parsing of FBref's string formats, and the schema contract with upstream."""
+"""Parsing FBref's string formats and checking the upstream column maps."""
 
 from __future__ import annotations
 
@@ -106,14 +106,13 @@ def test_team_name_map_is_injective() -> None:
 
 
 def test_anchor_table_has_the_targets_we_depend_on() -> None:
-    """`misc` must keep supplying the fouls that v1 typed in by hand."""
+    """The misc table is where the fouls and yellow cards come from."""
     mapped = set(worldfootballr.COLUMN_MAP[worldfootballr.ANCHOR_TABLE].values())
     assert {"Fls", "Fld", "CrdY"} <= mapped
 
 
 def test_column_maps_do_not_collide() -> None:
-    """Two tables mapping different sources to one output name would clobber each other
-    on the join, and the winner would depend on load order."""
+    """Two tables mapping different columns to one name would overwrite each other on the join."""
     seen: dict[str, str] = {}
     for stat_type, mapping in worldfootballr.COLUMN_MAP.items():
         for destination in mapping.values():

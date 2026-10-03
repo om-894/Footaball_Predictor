@@ -42,7 +42,7 @@ def main() -> None:
     if players.empty or schedule.empty:
         raise SystemExit(f"no scraped CSVs in {raw} yet, run scripts/scrape_fbref.py first")
 
-    # appended chunks can repeat the header row, and a match can be saved twice
+    # appended chunks can repeat the header row. a match can also be saved twice
     players = players[players["player"] != "player"]
     players = players.drop_duplicates(subset=["game_id", "team", "player"])
     print(f"loaded {len(players):,} player rows from {raw}")

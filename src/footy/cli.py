@@ -111,7 +111,7 @@ def _load_features() -> pd.DataFrame:
 
 
 def _load_history(league: League) -> tuple[pd.DataFrame, tuple[str, ...]]:
-    """The history table behind a --league choice, and the targets it supports."""
+    """The history table behind a --league choice with the targets it supports."""
     path, targets, how = HISTORY[league]
     if not path.exists():
         _fail(f"{path.name} not found, run {how} first")

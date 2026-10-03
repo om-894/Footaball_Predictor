@@ -1,4 +1,4 @@
-"""Forecasting a match that has not been played."""
+"""Forecasting a match that hasn't been played yet."""
 
 from __future__ import annotations
 
@@ -59,11 +59,7 @@ def test_forecast_produces_a_distribution_per_player(history, kickoff) -> None:
 
 
 def test_forecast_ignores_matches_after_kickoff(history) -> None:
-    """The whole point: a fixture forecast must not see anything at or after kickoff.
-
-    We cut the history in half, forecast from the midpoint, then scramble everything after
-    it. The forecast must be unchanged.
-    """
+    """Scrambling every match after kickoff must not change the forecast."""
     midpoint = history["Match_Date"].quantile(0.5)
     cut = pd.Timestamp(midpoint) + pd.Timedelta(days=1)
 

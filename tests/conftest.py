@@ -1,8 +1,7 @@
-"""Synthetic player-match fixtures.
+"""Synthetic player-match data for the tests.
 
-Deliberately synthetic rather than a sample of the real Parquet: the tests need to be
-able to *change the future* and check the past is unaffected, which means generating the
-frame rather than reading one.
+Generated rather than read from the real data, so tests can change later matches and
+check that earlier features stay the same.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ REFEREES = ["A Taylor", "M Oliver", "P Tierney"]
 def make_player_matches(
     n_matchdays: int = 24, players_per_team: int = 11, seed: int = 0
 ) -> pd.DataFrame:
-    """Build a small but structurally faithful player-match table."""
+    """A small player-match table with the same columns as the real one."""
     rng = np.random.default_rng(seed)
     rows = []
     start = pd.Timestamp("2020-08-01")

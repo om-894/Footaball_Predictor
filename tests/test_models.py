@@ -1,4 +1,4 @@
-"""Model-level contracts, especially the ones that keep the comparison fair."""
+"""Checks every model follows the same rules, so the comparison between them is fair."""
 
 from __future__ import annotations
 
@@ -36,12 +36,7 @@ def matrix(built: pd.DataFrame):
     ],
 )
 def test_predictions_are_non_negative_and_finite(factory, matrix) -> None:
-    """Counts cannot be negative.
-
-    The v1 model standardised its targets and minimised MSE, so it could and did emit
-    negative shot counts. Working on the rate scale with a log link makes that
-    unrepresentable rather than merely unlikely.
-    """
+    """Predicted counts are finite and never negative."""
     X, y, minutes = matrix
     model = factory().fit(X, y, minutes)
     predictions = model.predict(X, minutes)
@@ -55,11 +50,7 @@ def test_predictions_are_non_negative_and_finite(factory, matrix) -> None:
     [lambda: GlobalMean(), lambda: PositionMean(), lambda: ShrunkCareerRate("Fls")],
 )
 def test_prediction_scales_with_minutes(factory, matrix) -> None:
-    """Doubling exposure must double the expected count.
-
-    This is the property the log-minutes offset guarantees, and the reason minutes are
-    never a plain feature.
-    """
+    """Doubling the minutes doubles the expected count, which the log-minutes offset guarantees."""
     X, y, minutes = matrix
     model = factory().fit(X, y, minutes)
 
@@ -69,7 +60,7 @@ def test_prediction_scales_with_minutes(factory, matrix) -> None:
 
 
 def test_baseline_emits_a_real_distribution(matrix) -> None:
-    """Baselines must estimate dispersion, or they lose on log-score by construction."""
+    """Baselines estimate a dispersion too, so they compete fairly on log score."""
     X, y, minutes = matrix
     model = GlobalMean().fit(X, y, minutes)
     distribution = model.predict_distribution(X, minutes)
@@ -80,7 +71,7 @@ def test_baseline_emits_a_real_distribution(matrix) -> None:
 
 
 def test_glm_scaler_is_fitted_on_training_data_only(built: pd.DataFrame) -> None:
-    """The scaler comes from the training rows, and predicting on other rows never changes it."""
+    """The scaler comes from the training rows. Predicting on other rows never changes it."""
     columns = feature_module.feature_columns(built)
     split = len(built) // 2
     train, test = built.iloc[:split], built.iloc[split:]
@@ -111,7 +102,7 @@ def test_minutes_model_respects_bounds(built: pd.DataFrame) -> None:
 
 
 def test_minutes_quantiles_are_monotone(built: pd.DataFrame) -> None:
-    """Independently fitted quantile models can cross; the output must not."""
+    """The quantile models are fitted separately and can cross, so the output is sorted."""
     columns = feature_module.feature_columns(built)
     quantiles = MinutesModel(seed=0).fit(built[columns], built["Min"].to_numpy(float))
     values = quantiles.predict_quantiles(built[columns]).to_numpy()
@@ -120,12 +111,7 @@ def test_minutes_quantiles_are_monotone(built: pd.DataFrame) -> None:
 
 
 def test_glm_rate_is_capped_at_a_plausible_value(matrix) -> None:
-    """A diverging log-link fit must not emit impossible rates.
-
-    The negative binomial fit for tackles once predicted a mean of 12.2 against an actual
-    mean near 1.0 -- a blown fit whose log-score still looked ordinary, so only the MAE
-    column gave it away.
-    """
+    """A diverging fit is capped instead of predicting impossible rates (it once predicted 12 tackles a match)."""
     X, y, minutes = matrix
     model = NegativeBinomialGLM(max_features=20).fit(X, y, minutes)
     rates = model._predict_rate(X)

@@ -50,7 +50,7 @@ def read_table(path, how: str) -> pd.DataFrame:
 
 
 def align(frame: pd.DataFrame, source: str) -> pd.DataFrame:
-    """Keep the shared columns, adding any a source lacks, and tag each row with its source."""
+    """Keep the shared columns, adding any a source lacks, then tag each row with its source."""
     out = frame.copy()
     for column in KEEP:
         if column not in out.columns:

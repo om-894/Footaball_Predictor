@@ -1,4 +1,4 @@
-"""Metrics must be proper: a correct distribution has to score best."""
+"""Count distributions and metrics, including that the true distribution scores best."""
 
 from __future__ import annotations
 
@@ -31,17 +31,13 @@ def test_dispersion_widens_the_distribution() -> None:
     tight = CountDistribution(mu, np.zeros_like(mu))
     loose = CountDistribution(mu, np.full_like(mu, 1.5))
 
-    # More dispersion means more mass at zero and further out in the tail.
+    # more dispersion puts more probability on zero and on large counts
     assert loose.pmf(np.zeros(4))[0] > tight.pmf(np.zeros(4))[0]
     assert loose.prob_at_least(6)[0] > tight.prob_at_least(6)[0]
 
 
 def test_log_score_is_proper() -> None:
-    """The distribution that generated the data must score best.
-
-    This is what makes log-score worth reporting: it cannot be gamed by a model that
-    hedges toward the mean, which is exactly what MSE on standardised counts rewards.
-    """
+    """The distribution that generated the data gets the best log score."""
     rng = np.random.default_rng(0)
     truth = 1.5
     y = rng.poisson(truth, size=20000).astype(float)
@@ -55,7 +51,7 @@ def test_log_score_is_proper() -> None:
 
 
 def test_crps_is_proper_and_finite_on_surprises() -> None:
-    """CRPS must prefer the truth, and stay finite where log-score blows up."""
+    """CRPS prefers the true distribution and stays finite on a near-impossible count."""
     rng = np.random.default_rng(1)
     y = rng.poisson(2.0, size=5000).astype(float)
 
@@ -63,7 +59,7 @@ def test_crps_is_proper_and_finite_on_surprises() -> None:
     wrong = CountDistribution(np.full(len(y), 8.0), np.zeros(len(y)))
     assert correct.crps(y).mean() < wrong.crps(y).mean()
 
-    # A near-impossible observation: log-score diverges, CRPS does not.
+    # a near-impossible count, where the log score would blow up
     shock = CountDistribution(np.array([0.001]), np.array([0.0]))
     assert np.isfinite(shock.crps(np.array([12.0]))).all()
 
@@ -77,8 +73,7 @@ def test_prob_at_least_is_monotone() -> None:
 
 def test_poisson_deviance_is_zero_at_perfect_prediction() -> None:
     y = np.array([0.0, 1.0, 4.0])
-    # mu is floored at 1e-9 to keep the log finite, so a perfect zero prediction leaves a
-    # residual of that order rather than exactly 0.
+    # mu is floored at 1e-9, so a perfect zero prediction leaves a tiny residual
     np.testing.assert_allclose(poisson_deviance(y, y), 0.0, atol=1e-8)
     assert (poisson_deviance(y, y + 1.5) > 0).all()
 
@@ -96,7 +91,7 @@ def test_calibration_error_detects_a_biased_model() -> None:
 def test_dispersion_estimate_recovers_overdispersion() -> None:
     rng = np.random.default_rng(3)
     mu = np.full(50000, 2.0)
-    # Gamma-Poisson mixture with alpha = 0.5.
+    # gamma-Poisson mixture with alpha = 0.5
     rates = rng.gamma(shape=2.0, scale=1.0, size=len(mu))
     y = rng.poisson(rates).astype(float)
 

@@ -24,13 +24,7 @@ def _frame(pairs: list[tuple[str, str, str, str]]) -> pd.DataFrame:
 
 
 def test_home_away_survives_abbreviated_club_names() -> None:
-    """The bug this exists to prevent.
-
-    soccerdata's schedule says "QPR" and "Blackburn"; its player stats say "Queens Park
-    Rangers" and "Blackburn Rovers". Comparing the two directly marked 7 of 24 clubs as
-    permanently away -- 869 away rows against 507 home, with 15 matches having no home
-    side at all -- and every home/away and opponent feature inherited the error.
-    """
+    """The home side is found even when the schedule says "QPR" and the player table says "Queens Park Rangers"."""
     frame = resolve_home_away(_frame([
         ("m1", "Queens Park Rangers", "Bolton Wanderers", "QPR"),
         ("m2", "Blackburn Rovers", "Queens Park Rangers", "Blackburn"),

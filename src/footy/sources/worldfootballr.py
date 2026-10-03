@@ -37,7 +37,7 @@ PLAYER_CONTEXT = ["Team", "Home_Away", "Player", "Player_Href", "Nation", "Pos",
 # --------------------------------------------------------------------------- #
 
 # FBref names the same stat differently in different tables, so each table's columns are
-# mapped to one shared name. unlisted columns are dropped, and a listed one going missing
+# mapped to one shared name. unlisted columns are dropped. a listed one going missing
 # raises an error
 COLUMN_MAP: dict[str, dict[str, str]] = {
     # the anchor table, which also holds the fouls (Fls, Fld)
@@ -88,7 +88,7 @@ COLUMN_MAP: dict[str, dict[str, str]] = {
     },
 }
 
-# tables loaded by default. passing_types is a big download for little gain, and summary is
+# tables loaded by default. passing_types is a big download for little gain. summary is
 # left out because it only covers two seasons (its shots come from the shot file instead)
 DEFAULT_STAT_TYPES = ("misc", "possession", "passing", "defense")
 

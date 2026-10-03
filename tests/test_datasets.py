@@ -35,11 +35,7 @@ def test_validation_precedes_test(frame: pd.DataFrame) -> None:
 
 
 def test_a_shuffled_split_is_rejected(frame: pd.DataFrame) -> None:
-    """The v1 mistake, caught.
-
-    ``train_test_split(..., random_state=42)`` on a time series produces exactly this
-    fold, and the guard must refuse it.
-    """
+    """A shuffled split, like train_test_split on a time series, must be rejected."""
     rng = np.random.default_rng(0)
     shuffled = rng.permutation(len(frame))
     split = int(0.8 * len(frame))

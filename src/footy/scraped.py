@@ -2,7 +2,7 @@
 Builds the standard player-match table from a live FBref scrape.
 
 A live scrape only gets FBref's match summary table, so the result is narrower than the
-mirror: no xG, touches or passes, and tackles won instead of total tackles.
+mirror: no xG, touches or passes, with tackles won instead of total tackles.
 """
 
 from __future__ import annotations
