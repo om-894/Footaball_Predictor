@@ -392,7 +392,6 @@ src/footy/
   pipeline.py        fits the ladder across folds
   cli.py             fetch / build / evaluate / predict / info
 tests/               causality, per-90 units, splitters, metrics, models
-legacy/              the v1 scripts, with notes on why they were replaced
 ```
 
 ## Tests
